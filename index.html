@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>GazccAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080b0f;--sur:#0e1117;--card:#141820;--brd:#1c2333;
+  --cyan:#00e5ff;--pink:#ff3cac;--green:#39ff14;
+  --txt:#cdd6f4;--muted:#6c7a9c;
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'JetBrains Mono',monospace;overflow:hidden}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#1c2333 1px,transparent 1px);
+  background-size:28px 28px;opacity:.3;pointer-events:none;z-index:0;
+}
+
+/* SETUP SCREEN */
+#setup{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.setup-box{
+  background:var(--sur);border:1px solid var(--brd);
+  border-radius:16px;padding:28px 22px;
+  width:100%;max-width:420px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.setup-box h2{
+  font-family:'Oxanium',sans-serif;font-size:22px;font-weight:800;
+  background:linear-gradient(90deg,var(--cyan),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-align:center;
+}
+.setup-box p{font-size:11px;color:var(--muted);text-align:center;line-height:1.6}
+.field-label{font-size:9px;letter-spacing:1.5px;color:var(--muted);font-family:'Oxanium',sans-serif;margin-bottom:4px}
+.setup-box input,.setup-box select{
+  width:100%;background:var(--card);border:1.5px solid var(--brd);
+  border-radius:10px;padding:11px 13px;color:var(--txt);
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  outline:none;-webkit-appearance:none;
+}
+.setup-box input:focus,.setup-box select:focus{border-color:var(--cyan)}
+.setup-box input::placeholder{color:var(--muted)}
+.setup-box select option{background:#0e1117}
+#startBtn{
+  width:100%;padding:13px;border-radius:10px;
+  background:linear-gradient(135deg,#0060cc,var(--cyan));
+  border:none;color:#fff;font-size:14px;font-weight:700;
+  font-family:'Oxanium',sans-serif;letter-spacing:1px;
+  cursor:pointer;margin-top:4px;
+  box-shadow:0 0 20px rgba(0,229,255,.3);
+}
+#startBtn:active{opacity:.85}
+.err{font-size:11px;color:#ff5555;text-align:center;display:none}
+a.guide{font-size:10px;color:var(--cyan);text-align:center;display:block;text-decoration:none}
+
+/* MAIN APP */
+#app{display:none;height:100%}
+
+/* HEADER */
+header{
+  position:fixed;top:0;left:0;right:0;height:56px;
+  display:flex;align-items:center;gap:10px;padding:0 14px;
+  background:rgba(8,11,15,.96);border-bottom:1px solid var(--brd);
+  z-index:999;backdrop-filter:blur(12px);
+}
+.logo{
+  width:34px;height:34px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#0060cc,var(--cyan));
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:0 0 14px rgba(0,229,255,.35);
+}
+.bot-title{
+  font-family:'Oxanium',sans-serif;font-size:15px;font-weight:800;
+  background:linear-gradient(90deg,var(--cyan),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  white-space:nowrap;
+}
+.mwrap{margin-left:auto;position:relative;padding-top:10px}
+.mwrap::before{
+  content:'MODEL';position:absolute;top:0;left:6px;
+  font-size:7px;color:var(--muted);letter-spacing:1.5px;
+  font-family:'Oxanium',sans-serif;
+}
+select#msel{
+  background:var(--card);border:1px solid var(--brd);
+  border-radius:8px;color:var(--cyan);
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:5px 26px 5px 8px;outline:none;cursor:pointer;
+  -webkit-appearance:none;appearance:none;max-width:145px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300e5ff'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 7px center;
+}
+select#msel option{background:#0e1117;color:var(--txt)}
+.pulse{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  background:var(--green);box-shadow:0 0 8px var(--green);
+  animation:blink 2s infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.settings-btn{
+  background:none;border:1px solid var(--brd);border-radius:7px;
+  color:var(--muted);width:28px;height:28px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  flex-shrink:0;-webkit-tap-highlight-color:transparent;
+}
+
+/* CHAT */
+#chat{
+  position:fixed;top:56px;bottom:68px;left:0;right:0;
+  overflow-y:auto;padding:16px 12px;
+  display:flex;flex-direction:column;gap:10px;
+  z-index:1;scroll-behavior:smooth;
+}
+#chat::-webkit-scrollbar{width:3px}
+#chat::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
+.welcome{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;height:100%;
+  text-align:center;color:var(--muted);animation:fu .6s ease;
+}
+.welcome h2{
+  font-family:'Oxanium',sans-serif;font-size:30px;font-weight:800;
+  background:linear-gradient(135deg,var(--cyan),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.welcome .tag{
+  font-size:9px;font-family:'Oxanium',sans-serif;letter-spacing:2.5px;
+  border:1px solid var(--brd);padding:4px 14px;border-radius:20px;color:var(--brd);
+}
+.welcome p{font-size:11px}
+.msg{display:flex;flex-direction:column;gap:3px;max-width:88%;animation:fu .2s ease}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg.user{align-self:flex-end}
+.msg.bot{align-self:flex-start}
+.lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-family:'Oxanium',sans-serif}
+.msg.user .lbl{color:var(--cyan);text-align:right}
+.msg.bot .lbl{color:var(--pink)}
+.bubble{padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.65;word-break:break-word}
+.msg.user .bubble{
+  background:linear-gradient(135deg,#1a1f35,#0d1526);
+  border:1px solid rgba(0,229,255,.15);border-bottom-right-radius:3px;
+  box-shadow:0 2px 16px rgba(0,229,255,.06);
+}
+.msg.bot .bubble{
+  background:linear-gradient(135deg,#0e1117,#141820);
+  border:1px solid var(--brd);border-bottom-left-radius:3px;
+  border-left:2px solid var(--pink);
+}
+.td{display:flex;gap:5px;padding:4px 2px;align-items:center}
+.td span{width:5px;height:5px;border-radius:50%;background:var(--pink);animation:dot 1.2s infinite}
+.td span:nth-child(2){animation-delay:.2s}.td span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,80%,100%{transform:none;opacity:.3}40%{transform:translateY(-5px);opacity:1}}
+pre{
+  background:#0a0d12;border:1px solid var(--brd);border-radius:6px;
+  padding:10px;margin-top:6px;overflow-x:auto;
+  font-size:11px;white-space:pre-wrap;word-break:break-word;
+}
+code{color:var(--cyan)}
+
+/* INPUT BAR */
+.bar{
+  position:fixed;bottom:0;left:0;right:0;height:68px;
+  display:flex;align-items:center;gap:8px;padding:10px 12px;
+  background:rgba(8,11,15,.97);border-top:1px solid var(--brd);
+  z-index:999;backdrop-filter:blur(12px);
+}
+#inp{
+  flex:1;height:44px;background:var(--card);
+  border:1.5px solid var(--brd);border-radius:10px;
+  padding:0 14px;color:var(--txt);
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  outline:none;-webkit-appearance:none;transition:border-color .2s;
+}
+#inp:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,.1)}
+#inp::placeholder{color:var(--muted)}
+.bwrap{position:relative}
+#btn{
+  width:44px;height:44px;flex-shrink:0;border-radius:10px;
+  background:linear-gradient(135deg,#0060cc,var(--cyan));
+  border:none;color:#fff;font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 16px rgba(0,229,255,.3);
+  transition:opacity .15s,transform .1s;
+  -webkit-tap-highlight-color:transparent;
+}
+#btn:active{transform:scale(.93)}
+#btn:disabled{opacity:.4;box-shadow:none}
+.mbadge{
+  position:absolute;top:-6px;right:-6px;
+  width:16px;height:16px;border-radius:50%;
+  background:#1c2333;color:#fff;
+  font-size:8px;display:flex;align-items:center;justify-content:center;
+  font-family:'Oxanium',sans-serif;font-weight:700;transition:background .3s;
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup">
+  <div class="setup-box">
+    <h2>⚡ GazccAI Setup</h2>
+    <p>Masukkan API key OpenRouter lo.<br>Cuma tersimpan di browser lo, tidak dikirim ke mana-mana selain OpenRouter.</p>
+    <div>
+      <div class="field-label">OPENROUTER API KEY</div>
+      <input type="password" id="apiKey" placeholder="sk-or-v1-...">
+    </div>
+    <div>
+      <div class="field-label">NAMA BOT</div>
+      <input type="text" id="botName" placeholder="GazccAI" value="GazccAI">
+    </div>
+    <div>
+      <div class="field-label">SYSTEM PROMPT</div>
+      <input type="text" id="sysPrompt" placeholder="You are a helpful AI assistant..." value="You are a helpful AI assistant. Answer in the same language as the user.">
+    </div>
+    <div id="errMsg" class="err">API key tidak boleh kosong!</div>
+    <button id="startBtn" onclick="startApp()">MULAI CHAT ➤</button>
+    <a class="guide" href="https://openrouter.ai/keys" target="_blank">🔑 Dapetin API key gratis di openrouter.ai/keys</a>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="logo">🤖</div>
+    <div class="bot-title" id="headerTitle">GazccAI</div>
+    <div class="mwrap">
+      <select id="msel">
+        <option value="stepfun/step-3.5-flash">Step 3.5 Flash ⚡</option>
+        <option value="google/gemma-3-27b-it:free">Gemma 3 27B</option>
+        <option value="deepseek/deepseek-r1:free">DeepSeek R1</option>
+        <option value="mistralai/mistral-7b-instruct:free">Mistral 7B</option>
+        <option value="nousresearch/hermes-3-llama-3.1-405b:free">Hermes 405B</option>
+        <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B</option>
+      </select>
+    </div>
+    <button class="settings-btn" onclick="resetSetup()" title="Ganti API key">⚙</button>
+    <div class="pulse"></div>
+  </header>
+
+  <div id="chat">
+    <div class="welcome" id="wlc">
+      <h2 id="wlcTitle">GazccAI</h2>
+      <div class="tag">POWERED BY OPENROUTER</div>
+      <p>Pilih model di atas — lalu ketik pesan</p>
+    </div>
+  </div>
+
+  <div class="bar">
+    <input type="text" id="inp" placeholder="Ketik pesan..." autocomplete="off">
+    <div class="bwrap">
+      <button id="btn" onclick="send()">&#10148;</button>
+      <div class="mbadge" id="mb">0</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var API_KEY = '';
+var BOT = 'GazccAI';
+var SYS_PROMPT = '';
+var hist = [];
+
+// Load saved config
+(function(){
+  var k = localStorage.getItem('gazcc_key');
+  var b = localStorage.getItem('gazcc_bot');
+  var s = localStorage.getItem('gazcc_sys');
+  if(k){ API_KEY=k; BOT=b||'GazccAI'; SYS_PROMPT=s||'You are a helpful AI assistant.'; showApp(); }
+})();
+
+function startApp(){
+  var k = document.getElementById('apiKey').value.trim();
+  var b = document.getElementById('botName').value.trim() || 'GazccAI';
+  var s = document.getElementById('sysPrompt').value.trim() || 'You are a helpful AI assistant. Answer in the same language as the user.';
+  if(!k){ document.getElementById('errMsg').style.display='block'; return; }
+  document.getElementById('errMsg').style.display='none';
+  API_KEY=k; BOT=b; SYS_PROMPT=s;
+  localStorage.setItem('gazcc_key',k);
+  localStorage.setItem('gazcc_bot',b);
+  localStorage.setItem('gazcc_sys',s);
+  showApp();
+}
+
+function showApp(){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('headerTitle').textContent=BOT;
+  document.getElementById('wlcTitle').textContent=BOT;
+  document.getElementById('inp').focus();
+}
+
+function resetSetup(){
+  if(!confirm('Reset API key dan config?')) return;
+  localStorage.clear();
+  location.reload();
+}
+
+var chat=document.getElementById('chat');
+var inp=document.getElementById('inp');
+var btn=document.getElementById('btn');
+var mb=document.getElementById('mb');
+
+inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){e.preventDefault();send();} });
+
+function badge(){
+  var n=Math.floor(hist.length/2);
+  mb.textContent=n;
+  mb.style.background=n>0?'#ff3cac':'#1c2333';
+}
+
+function rmW(){ var w=document.getElementById('wlc'); if(w)w.remove(); }
+
+function addMsg(role,text){
+  rmW();
+  var wrap=document.createElement('div');
+  wrap.className='msg '+role;
+  var lbl=document.createElement('div');
+  lbl.className='lbl';
+  lbl.textContent=role==='user'?'YOU':BOT;
+  var bub=document.createElement('div');
+  bub.className='bubble';
+  bub.innerHTML=text
+    .replace(/```([\s\S]*?)```/g,'<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\n/g,'<br>');
+  wrap.appendChild(lbl);
+  wrap.appendChild(bub);
+  chat.appendChild(wrap);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function addTyping(){
+  rmW();
+  var wrap=document.createElement('div');
+  wrap.className='msg bot';wrap.id='typ';
+  var lbl=document.createElement('div');lbl.className='lbl';lbl.textContent=BOT;
+  var bub=document.createElement('div');bub.className='bubble';
+  bub.innerHTML='<div class="td"><span></span><span></span><span></span></div>';
+  wrap.appendChild(lbl);wrap.appendChild(bub);
+  chat.appendChild(wrap);
+  chat.scrollTop=chat.scrollHeight;
+  return wrap;
+}
+
+async function send(){
+  var t=inp.value.trim();
+  if(!t||!API_KEY)return;
+  inp.value='';
+  btn.disabled=true;
+  addMsg('user',t);
+  hist.push({role:'user',content:t});
+  badge();
+  var ty=addTyping();
+  try{
+    var model=document.getElementById('msel').value;
+    var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer '+API_KEY,
+        'Content-Type':'application/json',
+        'HTTP-Referer':window.location.origin,
+        'X-Title':BOT
+      },
+      body:JSON.stringify({
+        model:model,
+        messages:[{role:'system',content:SYS_PROMPT}].concat(hist),
+        max_tokens:2048
+      })
+    });
+    var d=await res.json();
+    ty.remove();
+    if(d.choices&&d.choices[0]){
+      var reply=d.choices[0].message.content;
+      addMsg('bot',reply);
+      hist.push({role:'assistant',content:reply});
+      if(hist.length>40)hist=hist.slice(-40);
+      badge();
+    }else{
+      addMsg('bot','Error: '+(d.error&&d.error.message?d.error.message:JSON.stringify(d)));
+    }
+  }catch(e){ty.remove();addMsg('bot','Error: '+e.message);}
+  btn.disabled=false;
+  inp.focus();
+}
+</script>
+</body>
+</html>
