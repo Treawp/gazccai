@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>GazccAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080b0f;--sur:#0e1117;--card:#141820;--brd:#1c2333;
+  --cyan:#00e5ff;--pink:#ff3cac;--green:#39ff14;--yellow:#ffd700;
+  --txt:#cdd6f4;--muted:#6c7a9c;
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:'JetBrains Mono',monospace;overflow:hidden}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#1c2333 1px,transparent 1px);
+  background-size:28px 28px;opacity:.3;pointer-events:none;z-index:0;
+}
+
+/* ---- SETUP SCREEN ---- */
+#setup{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.setup-box{
+  background:var(--sur);border:1px solid var(--brd);
+  border-radius:16px;padding:28px 20px;
+  width:100%;max-width:420px;
+  display:flex;flex-direction:column;gap:14px;
+}
+.setup-box h2{
+  font-family:'Oxanium',sans-serif;font-size:22px;font-weight:800;
+  background:linear-gradient(90deg,#4285f4,var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-align:center;
+}
+.setup-box p{font-size:11px;color:var(--muted);text-align:center;line-height:1.6}
+.field-label{font-size:9px;letter-spacing:1.5px;color:var(--muted);font-family:'Oxanium',sans-serif;margin-bottom:4px}
+.setup-box input,.setup-box select,.setup-box textarea{
+  width:100%;background:var(--card);border:1.5px solid var(--brd);
+  border-radius:10px;padding:11px 13px;color:var(--txt);
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  outline:none;-webkit-appearance:none;resize:none;
+}
+.setup-box input:focus,.setup-box select:focus,.setup-box textarea:focus{border-color:var(--cyan)}
+.setup-box input::placeholder,.setup-box textarea::placeholder{color:var(--muted)}
+.setup-box select option{background:#0e1117}
+#startBtn{
+  width:100%;padding:13px;border-radius:10px;
+  background:linear-gradient(135deg,#1a73e8,var(--cyan));
+  border:none;color:#fff;font-size:14px;font-weight:700;
+  font-family:'Oxanium',sans-serif;letter-spacing:1px;
+  cursor:pointer;box-shadow:0 0 20px rgba(66,133,244,.3);
+}
+#startBtn:active{opacity:.85}
+.err{font-size:11px;color:#ff5555;text-align:center;display:none}
+a.guide{font-size:10px;color:var(--cyan);text-align:center;display:block;text-decoration:none}
+
+/* ---- HEADER ---- */
+header{
+  position:fixed;top:0;left:0;right:0;height:56px;
+  display:flex;align-items:center;gap:8px;padding:0 12px;
+  background:rgba(8,11,15,.96);border-bottom:1px solid var(--brd);
+  z-index:999;backdrop-filter:blur(12px);
+}
+.logo{
+  width:34px;height:34px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#1a73e8,var(--cyan));
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:0 0 14px rgba(66,133,244,.4);
+}
+.bot-title{
+  font-family:'Oxanium',sans-serif;font-size:14px;font-weight:800;
+  background:linear-gradient(90deg,#4285f4,var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  white-space:nowrap;
+}
+.mwrap{margin-left:auto;position:relative;padding-top:10px}
+.mwrap::before{
+  content:'MODEL';position:absolute;top:0;left:6px;
+  font-size:7px;color:var(--muted);letter-spacing:1.5px;font-family:'Oxanium',sans-serif;
+}
+select#msel{
+  background:var(--card);border:1px solid var(--brd);border-radius:8px;
+  color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:5px 26px 5px 8px;outline:none;cursor:pointer;
+  -webkit-appearance:none;appearance:none;max-width:148px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300e5ff'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 7px center;
+}
+select#msel option{background:#0e1117;color:var(--txt)}
+.pulse{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hbtn{
+  background:none;border:1px solid var(--brd);border-radius:7px;
+  color:var(--muted);width:28px;height:28px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  flex-shrink:0;-webkit-tap-highlight-color:transparent;
+}
+
+/* ---- CHAT ---- */
+#chat{
+  position:fixed;top:56px;bottom:68px;left:0;right:0;
+  overflow-y:auto;padding:16px 12px;
+  display:flex;flex-direction:column;gap:10px;z-index:1;scroll-behavior:smooth;
+}
+#chat::-webkit-scrollbar{width:3px}
+#chat::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
+.welcome{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;height:100%;
+  text-align:center;color:var(--muted);animation:fu .6s ease;
+}
+.welcome h2{
+  font-family:'Oxanium',sans-serif;font-size:28px;font-weight:800;
+  background:linear-gradient(135deg,#4285f4,var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.welcome .tag{
+  font-size:9px;font-family:'Oxanium',sans-serif;letter-spacing:2.5px;
+  border:1px solid var(--brd);padding:4px 14px;border-radius:20px;color:var(--brd);
+}
+.welcome p{font-size:11px}
+.welcome .caps{
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px;
+}
+.welcome .cap{
+  font-size:10px;font-family:'Oxanium',sans-serif;
+  background:var(--card);border:1px solid var(--brd);
+  border-radius:6px;padding:4px 10px;color:var(--muted);
+}
+.msg{display:flex;flex-direction:column;gap:3px;max-width:90%;animation:fu .2s ease}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg.user{align-self:flex-end}
+.msg.bot{align-self:flex-start}
+.lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-family:'Oxanium',sans-serif}
+.msg.user .lbl{color:var(--cyan);text-align:right}
+.msg.bot .lbl{color:#4285f4}
+.bubble{padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.65;word-break:break-word}
+.msg.user .bubble{
+  background:linear-gradient(135deg,#1a1f35,#0d1526);
+  border:1px solid rgba(0,229,255,.15);border-bottom-right-radius:3px;
+  box-shadow:0 2px 16px rgba(0,229,255,.06);
+}
+.msg.bot .bubble{
+  background:linear-gradient(135deg,#0e1117,#141820);
+  border:1px solid var(--brd);border-bottom-left-radius:3px;
+  border-left:2px solid #4285f4;
+}
+/* image preview in bubble */
+.bubble img.preview{
+  max-width:100%;max-height:200px;
+  border-radius:8px;margin-bottom:6px;display:block;
+  border:1px solid var(--brd);
+}
+/* file chip */
+.file-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--brd);
+  border-radius:8px;padding:5px 10px;font-size:11px;
+  color:var(--yellow);margin-bottom:6px;font-family:'Oxanium',sans-serif;
+}
+.td{display:flex;gap:5px;padding:4px 2px;align-items:center}
+.td span{width:5px;height:5px;border-radius:50%;background:#4285f4;animation:dot 1.2s infinite}
+.td span:nth-child(2){animation-delay:.2s}.td span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,80%,100%{transform:none;opacity:.3}40%{transform:translateY(-5px);opacity:1}}
+pre{
+  background:#0a0d12;border:1px solid var(--brd);border-radius:6px;
+  padding:10px;margin-top:6px;overflow-x:auto;font-size:11px;
+  white-space:pre-wrap;word-break:break-word;
+}
+code{color:var(--cyan)}
+
+/* ---- ATTACHMENT PREVIEW ---- */
+#attachBar{
+  position:fixed;bottom:68px;left:0;right:0;
+  background:rgba(8,11,15,.97);border-top:1px solid var(--brd);
+  padding:8px 12px;display:none;
+  flex-wrap:wrap;gap:8px;z-index:998;
+}
+.att-item{
+  display:flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--brd);
+  border-radius:8px;padding:5px 10px;
+  font-size:11px;font-family:'Oxanium',sans-serif;
+  max-width:200px;
+}
+.att-item .att-name{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:var(--yellow);flex:1;font-size:10px;
+}
+.att-item img{width:28px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0}
+.att-item .att-icon{font-size:16px;flex-shrink:0}
+.att-remove{
+  background:none;border:none;color:var(--muted);
+  cursor:pointer;font-size:14px;flex-shrink:0;
+  line-height:1;padding:0 2px;
+}
+
+/* ---- INPUT BAR ---- */
+.bar{
+  position:fixed;bottom:0;left:0;right:0;height:68px;
+  display:flex;align-items:center;gap:6px;padding:10px 10px;
+  background:rgba(8,11,15,.97);border-top:1px solid var(--brd);
+  z-index:999;backdrop-filter:blur(12px);
+}
+.attach-btn{
+  width:40px;height:44px;flex-shrink:0;border-radius:10px;
+  background:var(--card);border:1.5px solid var(--brd);
+  color:var(--muted);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;transition:border-color .2s;
+  position:relative;
+}
+.attach-btn:active{border-color:var(--cyan)}
+#fileInput{display:none}
+#inp{
+  flex:1;height:44px;background:var(--card);
+  border:1.5px solid var(--brd);border-radius:10px;
+  padding:0 12px;color:var(--txt);
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  outline:none;-webkit-appearance:none;transition:border-color .2s;
+}
+#inp:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,.1)}
+#inp::placeholder{color:var(--muted)}
+.bwrap{position:relative}
+#btn{
+  width:44px;height:44px;flex-shrink:0;border-radius:10px;
+  background:linear-gradient(135deg,#1a73e8,var(--cyan));
+  border:none;color:#fff;font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 16px rgba(66,133,244,.35);
+  transition:opacity .15s,transform .1s;-webkit-tap-highlight-color:transparent;
+}
+#btn:active{transform:scale(.93)}
+#btn:disabled{opacity:.4;box-shadow:none}
+.mbadge{
+  position:absolute;top:-6px;right:-6px;
+  width:16px;height:16px;border-radius:50%;
+  background:#1c2333;color:#fff;
+  font-size:8px;display:flex;align-items:center;justify-content:center;
+  font-family:'Oxanium',sans-serif;font-weight:700;transition:background .3s;
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="setup-box">
+    <h2>✦ GazccAI Setup</h2>
+    <p>Pakai Google Gemini API — gratis, support gambar & file.</p>
+    <div>
+      <div class="field-label">GEMINI API KEY</div>
+      <input type="password" id="apiKey" placeholder="AIza...">
+    </div>
+    <div>
+      <div class="field-label">NAMA BOT</div>
+      <input type="text" id="botName" placeholder="GazccAI" value="GazccAI">
+    </div>
+    <div>
+      <div class="field-label">SYSTEM PROMPT</div>
+      <textarea id="sysPrompt" rows="3" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant. Answer in the same language as the user.</textarea>
+    </div>
+    <div id="errMsg" class="err">API key tidak boleh kosong!</div>
+    <button id="startBtn" onclick="startApp()">MULAI CHAT ➤</button>
+    <a class="guide" href="https://aistudio.google.com/app/apikey" target="_blank">🔑 Dapetin Gemini API key gratis di aistudio.google.com</a>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;height:100%">
+  <header>
+    <div class="logo">✦</div>
+    <div class="bot-title" id="headerTitle">GazccAI</div>
+    <div class="mwrap">
+      <select id="msel">
+        <option value="gemini-2.0-flash">Gemini 2.0 Flash ⚡</option>
+        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+        <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+        <option value="gemini-1.5-flash-8b">Gemini 1.5 Flash 8B</option>
+      </select>
+    </div>
+    <button class="hbtn" onclick="clearChat()" title="Clear chat">🗑</button>
+    <button class="hbtn" onclick="resetSetup()" title="Settings">⚙</button>
+    <div class="pulse"></div>
+  </header>
+
+  <div id="chat">
+    <div class="welcome" id="wlc">
+      <h2 id="wlcTitle">GazccAI</h2>
+      <div class="tag">POWERED BY GOOGLE GEMINI</div>
+      <p>Bisa chat, kirim gambar, dan upload file</p>
+      <div class="caps">
+        <span class="cap">🖼 Gambar</span>
+        <span class="cap">📄 PDF</span>
+        <span class="cap">📝 Text</span>
+        <span class="cap">💻 Code</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="attachBar"></div>
+
+  <div class="bar">
+    <button class="attach-btn" onclick="document.getElementById('fileInput').click()">📎</button>
+    <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.js,.py,.html,.css,.json,.md,.csv" onchange="handleFiles(this.files)">
+    <input type="text" id="inp" placeholder="Ketik pesan..." autocomplete="off">
+    <div class="bwrap">
+      <button id="btn" onclick="send()">&#10148;</button>
+      <div class="mbadge" id="mb">0</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var API_KEY='', BOT='GazccAI', SYS_PROMPT='';
+var hist=[];
+var pendingFiles=[];
+
+// Load saved
+(function(){
+  var k=localStorage.getItem('gz_key');
+  var b=localStorage.getItem('gz_bot');
+  var s=localStorage.getItem('gz_sys');
+  if(k){API_KEY=k;BOT=b||'GazccAI';SYS_PROMPT=s||'';showApp();}
+})();
+
+function startApp(){
+  var k=document.getElementById('apiKey').value.trim();
+  var b=document.getElementById('botName').value.trim()||'GazccAI';
+  var s=document.getElementById('sysPrompt').value.trim()||'You are a helpful AI assistant. Answer in the same language as the user.';
+  if(!k){document.getElementById('errMsg').style.display='block';return;}
+  document.getElementById('errMsg').style.display='none';
+  API_KEY=k;BOT=b;SYS_PROMPT=s;
+  localStorage.setItem('gz_key',k);
+  localStorage.setItem('gz_bot',b);
+  localStorage.setItem('gz_sys',s);
+  showApp();
+}
+
+function showApp(){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('headerTitle').textContent=BOT;
+  document.getElementById('wlcTitle').textContent=BOT;
+  document.getElementById('inp').focus();
+}
+
+function resetSetup(){
+  if(!confirm('Reset config?'))return;
+  localStorage.clear();location.reload();
+}
+
+function clearChat(){
+  hist=[];pendingFiles=[];
+  document.getElementById('chat').innerHTML=
+    '<div class="welcome" id="wlc">'+
+    '<h2>'+BOT+'</h2>'+
+    '<div class="tag">POWERED BY GOOGLE GEMINI</div>'+
+    '<p>Bisa chat, kirim gambar, dan upload file</p>'+
+    '<div class="caps"><span class="cap">🖼 Gambar</span><span class="cap">📄 PDF</span><span class="cap">📝 Text</span><span class="cap">💻 Code</span></div>'+
+    '</div>';
+  document.getElementById('attachBar').innerHTML='';
+  document.getElementById('attachBar').style.display='none';
+  badge();
+}
+
+var chat=document.getElementById('chat');
+var inp=document.getElementById('inp');
+var btn=document.getElementById('btn');
+var mb=document.getElementById('mb');
+var attachBar=document.getElementById('attachBar');
+
+inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();send();}});
+
+function badge(){
+  var n=Math.floor(hist.length/2);
+  mb.textContent=n;
+  mb.style.background=n>0?'#4285f4':'#1c2333';
+}
+
+function rmW(){var w=document.getElementById('wlc');if(w)w.remove();}
+
+// ---- FILE HANDLING ----
+function handleFiles(files){
+  Array.from(files).forEach(function(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var b64=e.target.result.split(',')[1];
+      var mime=file.type||'application/octet-stream';
+      pendingFiles.push({name:file.name,mime:mime,data:b64,isImg:mime.startsWith('image/')});
+      renderAttachBar();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('fileInput').value='';
+}
+
+function renderAttachBar(){
+  if(pendingFiles.length===0){
+    attachBar.style.display='none';
+    attachBar.innerHTML='';
+    // reset chat bottom
+    document.getElementById('chat').style.bottom='68px';
+    return;
+  }
+  attachBar.style.display='flex';
+  document.getElementById('chat').style.bottom='116px';
+  attachBar.innerHTML='';
+  pendingFiles.forEach(function(f,i){
+    var item=document.createElement('div');
+    item.className='att-item';
+    var icon='';
+    if(f.isImg){
+      icon='<img src="data:'+f.mime+';base64,'+f.data+'" alt="">';
+    } else {
+      var em = f.name.endsWith('.pdf')?'📄':f.name.endsWith('.py')?'🐍':f.name.endsWith('.js')?'📜':'📝';
+      icon='<span class="att-icon">'+em+'</span>';
+    }
+    var nm=document.createElement('div');nm.className='att-name';nm.textContent=f.name;
+    var rm=document.createElement('button');rm.className='att-remove';rm.textContent='✕';
+    rm.onclick=(function(idx){return function(){pendingFiles.splice(idx,1);renderAttachBar();};})(i);
+    item.innerHTML=icon;
+    item.appendChild(nm);
+    item.appendChild(rm);
+    attachBar.appendChild(item);
+  });
+}
+
+// ---- RENDER MESSAGE ----
+function addMsg(role, textContent, files){
+  rmW();
+  var wrap=document.createElement('div');
+  wrap.className='msg '+role;
+  var lbl=document.createElement('div');
+  lbl.className='lbl';
+  lbl.textContent=role==='user'?'YOU':BOT;
+  var bub=document.createElement('div');
+  bub.className='bubble';
+
+  // Show attached files/images
+  if(files&&files.length){
+    files.forEach(function(f){
+      if(f.isImg){
+        var img=document.createElement('img');
+        img.className='preview';
+        img.src='data:'+f.mime+';base64,'+f.data;
+        bub.appendChild(img);
+      } else {
+        var chip=document.createElement('div');
+        chip.className='file-chip';
+        var em=f.name.endsWith('.pdf')?'📄':f.name.endsWith('.py')?'🐍':f.name.endsWith('.js')?'📜':'📝';
+        chip.textContent=em+' '+f.name;
+        bub.appendChild(chip);
+      }
+    });
+  }
+
+  if(textContent){
+    var txt=document.createElement('div');
+    txt.innerHTML=textContent
+      .replace(/```([\s\S]*?)```/g,'<pre><code>$1</code></pre>')
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\n/g,'<br>');
+    bub.appendChild(txt);
+  }
+
+  wrap.appendChild(lbl);
+  wrap.appendChild(bub);
+  chat.appendChild(wrap);
+  chat.scrollTop=chat.scrollHeight;
+  return bub;
+}
+
+function addTyping(){
+  rmW();
+  var wrap=document.createElement('div');
+  wrap.className='msg bot';wrap.id='typ';
+  var lbl=document.createElement('div');lbl.className='lbl';lbl.textContent=BOT;
+  var bub=document.createElement('div');bub.className='bubble';
+  bub.innerHTML='<div class="td"><span></span><span></span><span></span></div>';
+  wrap.appendChild(lbl);wrap.appendChild(bub);
+  chat.appendChild(wrap);
+  chat.scrollTop=chat.scrollHeight;
+  return wrap;
+}
+
+// ---- SEND ----
+async function send(){
+  var t=inp.value.trim();
+  var files=pendingFiles.slice();
+  if(!t&&files.length===0) return;
+  if(!API_KEY) return;
+
+  inp.value='';
+  btn.disabled=true;
+  pendingFiles=[];
+  renderAttachBar();
+
+  // Show user message
+  addMsg('user', t, files);
+
+  // Build Gemini parts for this turn
+  var parts=[];
+  files.forEach(function(f){
+    parts.push({inline_data:{mime_type:f.mime,data:f.data}});
+  });
+  if(t) parts.push({text:t});
+
+  // Build history for Gemini format
+  var contents=[];
+
+  // Add system prompt as first user message if set and hist is empty
+  if(SYS_PROMPT && hist.length===0){
+    contents.push({role:'user',parts:[{text:'[SYSTEM]: '+SYS_PROMPT}]});
+    contents.push({role:'model',parts:[{text:'Understood. I will follow those instructions.'}]});
+  }
+
+  // Add history
+  hist.forEach(function(h){
+    contents.push(h);
+  });
+
+  // Add current user turn
+  var userTurn={role:'user',parts:parts};
+  contents.push(userTurn);
+  hist.push(userTurn);
+  badge();
+
+  var ty=addTyping();
+  var model=document.getElementById('msel').value;
+
+  try{
+    var res=await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+API_KEY,
+      {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:contents})
+      }
+    );
+    var d=await res.json();
+    ty.remove();
+
+    if(d.candidates&&d.candidates[0]&&d.candidates[0].content){
+      var reply=d.candidates[0].content.parts.map(function(p){return p.text||'';}).join('');
+      addMsg('bot',reply,null);
+      hist.push({role:'model',parts:[{text:reply}]});
+      if(hist.length>40) hist=hist.slice(-40);
+      badge();
+    } else if(d.error){
+      addMsg('bot','⚠️ Error: '+d.error.message,null);
+    } else {
+      addMsg('bot','⚠️ Respon tidak dikenali: '+JSON.stringify(d),null);
+    }
+  }catch(e){
+    ty.remove();
+    addMsg('bot','⚠️ Error: '+e.message,null);
+  }
+
+  btn.disabled=false;
+  inp.focus();
+}
+</script>
+</body>
+</html>
