@@ -506,10 +506,10 @@ strong{color:var(--txt);font-weight:700}
           <option value="deepseek/deepseek-coder-v2-lite-instruct">DeepSeek Coder V2 ⚡</option>
           <option value="openai/gpt-4.1">GPT-4.1 💻</option>
           <option value="openai/gpt-4.1-mini">GPT-4.1 Mini ⚡</option>
-          <option value="google/gemini-2.5-flash-preview:thinking">Gemini 2.5 Flash Thinking 🧠</option>
+          <option value="google/gemini-3-flash-preview">Gemini v3 </option>
         </optgroup>
         <optgroup label="── Claude (Anthropic) ──">
-          <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 4.5 ✦</option>
+          <option value="anthropic/claude-opus-4.6">Claude opus 4.6</option>
           <option value="anthropic/claude-3.7-sonnet">Claude 3.7 Sonnet 🧠</option>
           <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet ✦</option>
           <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku ⚡</option>
@@ -540,7 +540,7 @@ strong{color:var(--txt);font-weight:700}
         </optgroup>
         <optgroup label="── Other ──">
           <option value="openrouter/elephant-alpha">elephant ai</option>
-          <option value="nousresearch/hermes-3-llama-3.1-405b:free">Hermes 405B</option>
+          <option value="minimax/minimax-m2.5:free">minimax v2.5 free</option>
           <option value="stepfun/step-3.5-flash">Step 3.5 Flash ⚡</option>
         </optgroup>
       </select>
@@ -1026,7 +1026,7 @@ async function sendStream(messages,model){
         'HTTP-Referer':window.location.origin,
         'X-Title':BOT
       },
-      body:JSON.stringify({model:model,messages:messages,max_tokens:1200,include_reasoning:true,stream:true})
+      body:JSON.stringify({model:model,messages:messages,max_tokens:1000,include_reasoning:true,stream:true})
     });
 
     if(!res.ok){
