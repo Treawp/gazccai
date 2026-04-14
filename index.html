@@ -808,7 +808,7 @@ async function sendStream(messages,model){
         'HTTP-Referer':window.location.origin,
         'X-Title':BOT
       },
-      body:JSON.stringify({model:model,messages:messages,max_tokens:16000,include_reasoning:true,stream:true})
+      body:JSON.stringify({model:model,messages:messages,max_tokens:1200,include_reasoning:true,stream:true})
     });
 
     if(!res.ok){
