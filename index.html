@@ -250,7 +250,9 @@ strong{color:var(--txt);font-weight:600}
 .code-copy-btn{position:absolute;top:6px;right:6px;z-index:2;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:6px;color:var(--cyan);font-size:10px;padding:2px 8px;cursor:pointer;font-family:'Syne',sans-serif;letter-spacing:.5px;-webkit-tap-highlight-color:transparent;transition:all .15s;line-height:1.6}
 .code-copy-btn:active,.code-copy-btn.copied{background:rgba(6,214,160,0.1);border-color:var(--green);color:var(--green)}
 
-/* === ATTACH BAR === */
+/* === MOBILE SAFE AREA === */
+.bar{padding-bottom:max(10px,env(safe-area-inset-bottom));}
+@supports not (padding:env(safe-area-inset-bottom)){.bar{padding-bottom:10px;}}
 #attachBar{position:fixed;bottom:70px;left:0;right:0;background:var(--glass2);border-top:1px solid var(--brd);padding:8px 12px;display:none;flex-wrap:wrap;gap:8px;z-index:998;backdrop-filter:blur(16px)}
 .att-item{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:5px 10px;font-size:11px;font-family:'Syne',sans-serif;max-width:200px}
 .att-item .att-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--yellow);flex:1;font-size:10px}
@@ -626,18 +628,29 @@ function updateLastCode(text){
 function buildContextPrompt(){
   var parts=[];
   
-  // Instruksi konteks percakapan
-  parts.push('\n\n[📝 CONTEXT RULES:');
-  parts.push('- Kamu punya akses ke SELURUH riwayat percakapan di atas.');
-  parts.push('- Saat user bilang "tambahkan", "fix", "perbaiki", "lanjutkan", "ubah", "hapus", "ganti", dll — SELALU gunakan konteks percakapan sebelumnya untuk tahu apa yang dimaksud. Jangan tanya ulang jika sudah jelas.');
-  parts.push('- Jika user minta modifikasi code/script, cari code terakhir di riwayat chat dan modifikasi itu.');
-  parts.push('- Jawab singkat dan langsung jika tidak ada ambiguitas.]');
+  // Instruksi konteks percakapan - lebih kuat
+  parts.push('\n\n[CONTEXT & TOPIC COHERENCE — WAJIB:');
+  parts.push('- BACA SELURUH riwayat percakapan di atas sebelum menjawab.');
+  parts.push('- PERTAHANKAN topik percakapan yang sedang berjalan. Jangan loncat ke topik lain kecuali user eksplisit ganti topik.');
+  parts.push('- "tambahkan","fix","perbaiki","lanjutkan","ubah","hapus","ganti" -> SELALU merujuk ke konteks/code sebelumnya.');
+  parts.push('- Pesan pendek user ("oke","lanjut","terus","ya","gitu") -> lanjutkan dari konteks terkini, jangan balik tanya.');
+  parts.push('- Jawaban harus KONSISTEN dan RELEVAN dengan alur percakapan aktif.]');
   
   // Instruksi simpan memori
-  parts.push('\n[💾 MEMORY SAVING:');
-  parts.push('- Jika kamu mempelajari info penting tentang user (nama, preferensi, project aktif, bahasa pemrograman, dll), simpan dengan format: [[MEM: key=value]]');
+  parts.push('\n[MEMORY SAVING:');
+  parts.push('- Simpan info penting user dengan format: [[MEM: key=value]]');
   parts.push('- Contoh: [[MEM: nama_user=Ega]], [[MEM: project_aktif=upang_script]], [[MEM: bahasa=Lua]]');
-  parts.push('- Tag ini akan otomatis tersimpan ke memori dan dihapus dari response yang ditampilkan ke user.]');
+  parts.push('- Tag ini auto-tersimpan dan dihapus dari response user.]');
+  
+  // Inject recent topic summary
+  if(hist.length>=4){
+    var recentMsgs=hist.slice(-6).filter(function(h){return h.role!=='system';});
+    var topicHint=recentMsgs.map(function(h){
+      var c=typeof h.content==='string'?h.content:(Array.isArray(h.content)?h.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join(' '):'');
+      return '['+h.role.toUpperCase()+'] '+(c||'').trim().slice(0,100);
+    }).join(' | ');
+    parts.push('\n[TOPIK AKTIF: '+topicHint.slice(0,500)+']');
+  }
   
   return parts.join('\n');
 }
@@ -959,6 +972,41 @@ var attachBar=document.getElementById('attachBar');
 
 inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();send();}});
 
+// === MOBILE KEYBOARD FIX ===
+// Saat keyboard Android muncul, visualViewport mengecil → hitung ulang posisi bar
+function _fixBarPos(){
+  var vv=window.visualViewport;
+  if(!vv)return;
+  var keyboardH=window.innerHeight-vv.height;
+  var offset=Math.max(0,keyboardH);
+  var bar=document.querySelector('.bar');
+  if(bar){bar.style.bottom=offset+'px';bar.style.transition='bottom 0.05s';}
+  var ab=document.getElementById('attachBar');
+  var chatEl=document.getElementById('chat');
+  var barH=70;
+  var abVisible=ab&&ab.style.display==='flex';
+  var abH=abVisible?48:0;
+  if(ab){ab.style.bottom=(barH+offset)+'px';}
+  if(chatEl){chatEl.style.bottom=(barH+abH+offset)+'px';}
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',_fixBarPos);
+  window.visualViewport.addEventListener('scroll',_fixBarPos);
+}
+// Juga trigger saat focus/blur inp untuk handle semua device
+inp.addEventListener('focus',function(){setTimeout(_fixBarPos,300);});
+inp.addEventListener('blur',function(){
+  setTimeout(function(){
+    var bar=document.querySelector('.bar');
+    if(bar){bar.style.bottom='0px';}
+    var ab=document.getElementById('attachBar');
+    var chatEl=document.getElementById('chat');
+    var abVisible=ab&&ab.style.display==='flex';
+    if(ab){ab.style.bottom='70px';}
+    if(chatEl){chatEl.style.bottom=(70+(abVisible?48:0))+'px';}
+  },100);
+});
+
 document.addEventListener('paste',function(e){
   var items=(e.clipboardData||e.originalEvent.clipboardData).items;
   var handled=false;
@@ -992,8 +1040,9 @@ function handleFiles(files){
 }
 
 function renderAttachBar(){
-  if(pendingFiles.length===0){attachBar.style.display='none';attachBar.innerHTML='';chat.style.bottom='70px';return;}
+  if(pendingFiles.length===0){attachBar.style.display='none';attachBar.innerHTML='';chat.style.bottom='70px';_fixBarPos();return;}
   attachBar.style.display='flex';chat.style.bottom='118px';attachBar.innerHTML='';
+  _fixBarPos();
   pendingFiles.forEach(function(f,i){
     var item=document.createElement('div');item.className='att-item';
     var iconEl='';
@@ -1230,40 +1279,53 @@ var AGENT_TOOLS={
   save_ai_memory:{desc:'Simpan ke AI Memory. Input: key=value',run:function(input){var idx=input.indexOf('=');if(idx<0)return 'Error: format key=value';var k=input.slice(0,idx).trim(),v=input.slice(idx+1).trim();aiMemory[k]=v;saveAiMemory();updateMemBadge();return 'AI Memory: '+k+' = '+v;}}
 };
 
-var AGENT_SYS=`Kamu adalah GazccAgent. Selesaikan task dengan tools yang tersedia.
+var AGENT_SYS=`Kamu adalah GazccAgent — AI agent yang WAJIB menggunakan tools untuk menyelesaikan task.
 
-WAJIB ikuti format ini SETIAP iterasi:
-THOUGHT: [apa yang kamu pikirkan]
-ACTION: [nama_tool_tanpa_spasi]
-INPUT: [input untuk tool]
+ATURAN KETAT:
+1. SELALU gunakan format ini saat pakai tool:
+   THOUGHT: [apa yang kamu pikirkan]
+   ACTION: [nama_tool_persis]
+   INPUT: [input untuk tool]
 
-Setelah OBSERVATION, lanjut THOUGHT berikutnya.
-Kalau selesai, tutup HANYA dengan:
-FINAL ANSWER: [jawaban lengkap]
+2. Setelah menerima OBSERVATION, lanjut dengan THOUGHT berikutnya.
 
-TOOLS:
-calculate    - hitung math
+3. Kalau task selesai atau pertanyaan simple, tutup HANYA dengan:
+   FINAL ANSWER: [jawaban lengkap markdown]
+
+4. JANGAN tulis teks bebas di luar format ini. JANGAN skip ACTION jika task butuh tool.
+
+5. PAKAI KONTEKS PERCAKAPAN: Riwayat chat sebelumnya sudah di-inject. Pertahankan topik.
+
+TOOLS TERSEDIA:
+calculate    - hitung math expression
 get_time     - waktu sekarang
 remember     - simpan memori agent. Input: key=value
 recall       - ambil memori agent. Input: key
 list_memory  - lihat semua memori agent
 save_ai_memory - simpan ke AI Memory permanen. Input: key=value
 fetch_url    - ambil konten URL
-search_web   - cari web DuckDuckGo
-uuid         - generate UUID
-encode_b64   - encode Base64
-decode_b64   - decode Base64
-format_json  - pretty JSON
+search_web   - cari web DuckDuckGo. Input: query
+uuid         - generate UUID. Input: jumlah (angka)
+encode_b64   - encode Base64. Input: teks
+decode_b64   - decode Base64. Input: string base64
+format_json  - pretty print JSON. Input: json string
 regex_test   - test regex. Input: pattern|||string
-word_count   - hitung kata
+word_count   - hitung kata & karakter. Input: teks
 create_file  - buat file. Input: nama.ext|||konten
-read_file    - baca file
-edit_file    - edit file. Input: namafile|||lama|||baru
+read_file    - baca file. Input: namafile
+edit_file    - edit file. Input: namafile|||teks_lama|||teks_baru
 append_file  - tambah ke file. Input: namafile|||konten
-list_files   - lihat file
-delete_file  - hapus file
+list_files   - lihat semua file tersimpan
+delete_file  - hapus file. Input: namafile
 
-Jika pertanyaan simple tanpa perlu tool, langsung: FINAL ANSWER: [jawaban]`;
+Contoh BENAR:
+THOUGHT: User minta hitung 2+2, pakai calculate.
+ACTION: calculate
+INPUT: 2+2
+
+Contoh SALAH (DILARANG):
+"Hasilnya adalah 4" (tanpa format)`;
+
 
 // ---- AGENT RUNNER ----
 async function runAgent(userMsg,files){
@@ -1281,13 +1343,20 @@ async function runAgent(userMsg,files){
   if(userMsg)initContent.push({type:'text',text:userMsg});
 
   var agentSysWithMem=AGENT_SYS+buildMemoryPrompt();
-  var messages=[{role:'system',content:agentSysWithMem},{role:'user',content:initContent.length===0?userMsg:(initContent.length===1&&initContent[0].type==='text'?userMsg:initContent)}];
-  var MAX_ITER=6;var steps=[];var finalAnswer='';
+  // Sertakan riwayat percakapan ke agent agar konteks terjaga
+  var messages=[{role:'system',content:agentSysWithMem}];
+  // Inject hist terakhir (max 10 pesan) sebagai konteks
+  var histCtx=hist.slice(-10).filter(function(h){return h.role!=='system';});
+  histCtx.forEach(function(h){messages.push(h);});
+  // Tambah pesan user baru
+  var userContent=initContent.length===0?userMsg:(initContent.length===1&&initContent[0].type==='text'?userMsg:initContent);
+  messages.push({role:'user',content:userContent});
+  var MAX_ITER=8;var steps=[];var finalAnswer='';var noActionCount=0;
 
   for(var iter=0;iter<MAX_ITER;iter++){
     var res,d;
     try{
-      res=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':window.location.origin,'X-Title':BOT},body:JSON.stringify({model:model,messages:messages,max_tokens:iter===MAX_ITER-1?2000:900,temperature:0.2})});
+      res=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':window.location.origin,'X-Title':BOT},body:JSON.stringify({model:model,messages:messages,max_tokens:iter===MAX_ITER-1?2000:1200,temperature:0.15})});
       d=await res.json();
     }catch(e){typDiv.remove();bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Agent error: '+e.message+'</div>';return;}
 
@@ -1301,7 +1370,18 @@ async function runAgent(userMsg,files){
     var actionMatch=llmReply.match(/ACTION:\s*(\w+)/i);
     var inputMatch=llmReply.match(/INPUT:\s*([\s\S]*?)(?=THOUGHT:|ACTION:|FINAL ANSWER:|$)/i);
     if(!actionMatch){
-      if(iter===0){messages.push({role:'user',content:'PERINGATAN: Gunakan format THOUGHT/ACTION/INPUT atau FINAL ANSWER.'});continue;}
+      noActionCount++;
+      if(noActionCount<=3){
+        // Paksa lebih keras untuk pakai tool atau berikan final answer
+        var enforcement='PERINGATAN: Kamu harus menggunakan format YANG BENAR:\n'+
+          'THOUGHT: [pikiran kamu]\nACTION: [nama_tool]\nINPUT: [input]\n\n'+
+          'ATAU jika sudah selesai: FINAL ANSWER: [jawaban]\n\n'+
+          'Tools tersedia: '+Object.keys(AGENT_TOOLS).join(', ')+'\n'+
+          'JANGAN tulis respons bebas tanpa format ini.';
+        messages.push({role:'user',content:enforcement});
+        continue;
+      }
+      // Jika tetap gak mau pakai format, ambil sebagai final answer
       finalAnswer=llmReply.replace(/^THOUGHT:.*$/gmi,'').trim()||llmReply;break;
     }
     var thought=thoughtMatch?thoughtMatch[1].trim():'';
