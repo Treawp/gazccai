@@ -1106,7 +1106,7 @@ async function sendStream(messages,model){
     var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
       headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':window.location.origin,'X-Title':BOT},
-      body:JSON.stringify({model:model,messages:messages,max_tokens:4000,include_reasoning:true,stream:true})
+      body:JSON.stringify({model:model,messages:messages,max_tokens:1000,include_reasoning:true,stream:true})
     });
     if(!res.ok){var err=await res.json();bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(err.error?err.error.message:JSON.stringify(err))+'</div>';return null;}
 
