@@ -304,6 +304,44 @@ strong{color:var(--txt);font-weight:600}
 /* === AGENT MODE === */
 .agent-toggle{transition:all .2s}
 .agent-toggle.active{background:linear-gradient(135deg,var(--pink),var(--purple)) !important;border-color:var(--pink) !important;color:#fff !important;box-shadow:0 0 16px rgba(247,37,133,0.4)}
+/* === AGENT MODE INDICATOR === */
+.agent-mode-indicator{
+  position:fixed;top:52px;left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;align-items:center;z-index:997;
+  background:var(--glass2);border:1px solid rgba(0,212,255,0.15);
+  border-radius:0 0 16px 16px;padding:6px 16px;
+  backdrop-filter:blur(12px);font-size:10px;
+  font-family:'Syne',sans-serif;letter-spacing:1px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  transition:all .3s ease;opacity:0;pointer-events:none;
+}
+.agent-mode-indicator.show{opacity:1;}
+.mode-dot{width:8px;height:8px;border-radius:50%;animation:modePulse 1.5s infinite;}
+.mode-dot.planner{background:var(--cyan);box-shadow:0 0 10px var(--cyan);}
+.mode-dot.executor{background:var(--green);box-shadow:0 0 10px var(--green);}
+.mode-dot.critic{background:var(--pink);box-shadow:0 0 10px var(--pink);}
+.mode-dot.thinking{background:var(--yellow);box-shadow:0 0 10px var(--yellow);}
+
+@keyframes modePulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.6;transform:scale(1.2)}
+}
+
+.mode-label{color:var(--txt);font-weight:600;}
+.mode-label.planner{color:var(--cyan);}
+.mode-label.executor{color:var(--green);}
+.mode-label.critic{color:var(--pink);}
+.mode-label.thinking{color:var(--yellow);}
+
+.agent-progress{
+  position:fixed;top:52px;left:0;right:0;height:2px;
+  background:rgba(0,212,255,0.1);z-index:998;
+}
+.agent-progress-bar{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--cyan),var(--purple));
+  transition:width .3s ease;box-shadow:0 0 10px var(--cyan);
+}
 .agent-badge{position:fixed;top:62px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--pink),var(--purple));color:#fff;font-size:9px;letter-spacing:2px;font-family:'Syne',sans-serif;font-weight:700;padding:4px 16px;border-radius:0 0 12px 12px;z-index:998;animation:fu .3s ease;display:none}
 .agent-step{background:rgba(247,37,133,0.04);border:1px solid rgba(247,37,133,0.15);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .agent-step-hdr{display:flex;align-items:center;gap:8px;font-size:9px;font-family:'Syne',sans-serif;letter-spacing:1.5px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
@@ -387,6 +425,42 @@ strong{color:var(--txt);font-weight:600}
 .mem-tab{flex:1;padding:8px;border-radius:8px;border:1px solid var(--brd);background:transparent;color:var(--muted);font-size:10px;font-family:'Syne',sans-serif;cursor:pointer;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:all .2s;-webkit-tap-highlight-color:transparent}
 .mem-tab.active{background:rgba(6,214,160,0.08);border-color:rgba(6,214,160,0.25);color:var(--green)}
 .mem-divider{font-size:9px;letter-spacing:2px;color:var(--muted);font-family:'Syne',sans-serif;text-transform:uppercase;padding:4px 0;text-align:center}
+
+/* === AGENT MODE INDICATOR === */
+.agent-mode-indicator{
+  position:fixed;top:52px;left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;align-items:center;z-index:997;
+  background:var(--glass2);border:1px solid rgba(0,212,255,0.15);
+  border-radius:0 0 16px 16px;padding:6px 16px;
+  backdrop-filter:blur(12px);font-size:10px;
+  font-family:'Syne',sans-serif;letter-spacing:1px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  transition:all .3s ease;opacity:0;pointer-events:none;
+}
+.agent-mode-indicator.show{opacity:1;}
+.mode-dot{width:8px;height:8px;border-radius:50%;animation:modePulse 1.5s infinite;}
+.mode-dot.planner{background:var(--cyan);box-shadow:0 0 10px var(--cyan);}
+.mode-dot.executor{background:var(--green);box-shadow:0 0 10px var(--green);}
+.mode-dot.critic{background:var(--pink);box-shadow:0 0 10px var(--pink);}
+.mode-dot.thinking{background:var(--yellow);box-shadow:0 0 10px var(--yellow);}
+@keyframes modePulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.6;transform:scale(1.2)}
+}
+.mode-label{color:var(--txt);font-weight:600;}
+.mode-label.planner{color:var(--cyan);}
+.mode-label.executor{color:var(--green);}
+.mode-label.critic{color:var(--pink);}
+.mode-label.thinking{color:var(--yellow);}
+.agent-progress{
+  position:fixed;top:52px;left:0;right:0;height:2px;
+  background:rgba(0,212,255,0.1);z-index:998;
+}
+.agent-progress-bar{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--cyan),var(--purple));
+  transition:width .3s ease;box-shadow:0 0 10px var(--cyan);
+}
 </style>
 </head>
 <body>
@@ -498,6 +572,14 @@ strong{color:var(--txt);font-weight:600}
     <button class="hbtn" onclick="resetSetup()" title="Settings">⚙</button>
     <div class="pulse"></div>
   </header>
+  <!-- AGENT MODE INDICATOR -->
+  <div class="agent-mode-indicator" id="agentModeIndicator">
+    <div class="mode-dot thinking" id="modeDot"></div>
+    <span class="mode-label thinking" id="modeLabel">THINKING</span>
+  </div>
+  <div class="agent-progress" id="agentProgress" style="display:none">
+    <div class="agent-progress-bar" id="agentProgressBar"></div>
+  </div>
   <div class="agent-badge" id="agentBadge">⚡ GAZCC AGENT MODE AKTIF</div>
 
   <div id="chat">
@@ -1248,53 +1330,179 @@ var AGENT_TOOLS={
   save_ai_memory:{desc:'Simpan ke AI Memory. Input: key=value',run:function(input){var idx=input.indexOf('=');if(idx<0)return 'Error: format key=value';var k=input.slice(0,idx).trim(),v=input.slice(idx+1).trim();aiMemory[k]=v;saveAiMemory();updateMemBadge();return 'AI Memory: '+k+' = '+v;}}
 };
 
-var AGENT_SYS=`Kamu adalah GazccAgent — AI agent yang WAJIB menggunakan tools untuk menyelesaikan task.
+var AGENT_SYS=`Kamu adalah GazccAgent Pro — AI agent autonomous dengan 3 persona internal:
 
-ATURAN KETAT:
-1. SELALU gunakan format ini saat pakai tool:
-   THOUGHT: [apa yang kamu pikirkan]
-   ACTION: [nama_tool_persis]
-   INPUT: [input untuk tool]
+═══════════════════════════════════════════════════════════
+🧠 PLANNER → ⚡ EXECUTOR → 🔍 CRITIC (siklus berulang)
+═══════════════════════════════════════════════════════════
 
-2. Setelah menerima OBSERVATION, lanjut dengan THOUGHT berikutnya.
+Setiap task WAJIB melalui siklus ini minimal 1x:
 
-3. Kalau task selesai atau pertanyaan simple, tutup HANYA dengan:
-   FINAL ANSWER: [jawaban lengkap markdown]
+[PLANNER] Analisis & Decomposition:
+- Pecah task kompleks jadi sub-task atomic
+- Tentukan urutan dan dependencies
+- Pilih tools yang tepat
+- Output: [PLAN] dengan langkah terstruktur
 
-4. JANGAN tulis teks bebas di luar format ini. JANGAN skip ACTION jika task butuh tool.
+[EXECUTOR] Eksekusi & Action:
+- Jalankan tools sesuai plan
+- Handle errors & edge cases
+- Kumpulkan observasi/data
+- Output: Hasil eksekusi mentah
 
-5. PAKAI KONTEKS PERCAKAPAN: Riwayat chat sebelumnya sudah di-inject. Pertahankan topik.
+[CRITIC] Review & Reflection:
+- Evaluasi: Akurat? Lengkap? Sesuai goal?
+- Identifikasi kekurangan/masalah
+- Putuskan: REFINE (ulang) atau DELIVER
+- Output: [REFLECT] dengan confidence score
 
-TOOLS TERSEDIA:
-calculate    - hitung math expression
-get_time     - waktu sekarang
-remember     - simpan memori agent. Input: key=value
-recall       - ambil memori agent. Input: key
-list_memory  - lihat semua memori agent
-save_ai_memory - simpan ke AI Memory permanen. Input: key=value
-fetch_url    - ambil konten URL
-search_web   - cari web DuckDuckGo. Input: query
-uuid         - generate UUID. Input: jumlah (angka)
-encode_b64   - encode Base64. Input: teks
-decode_b64   - decode Base64. Input: string base64
-format_json  - pretty print JSON. Input: json string
-regex_test   - test regex. Input: pattern|||string
-word_count   - hitung kata & karakter. Input: teks
-create_file  - buat file. Input: nama.ext|||konten
-read_file    - baca file. Input: namafile
-edit_file    - edit file. Input: namafile|||teks_lama|||teks_baru
-append_file  - tambah ke file. Input: namafile|||konten
-list_files   - lihat semua file tersimpan
-delete_file  - hapus file. Input: namafile
+═══════════════════════════════════════════════════════════
+FORMAT OUTPUT WAJIB
+═══════════════════════════════════════════════════════════
 
-Contoh BENAR:
-THOUGHT: User minta hitung 2+2, pakai calculate.
+Mode PLANNER:
+[MODE: PLANNER]
+[PLAN]
+Task: [objektif]
+Step 1: [aksi] → Tool: [nama] → Expected: [output]
+...
+Dependencies: [urutan kritis]
+Confidence: [0-100%]
+
+Mode EXECUTOR:
+[MODE: EXECUTOR]
+THOUGHT: [rationale]
+ACTION: [tool_name]
+INPUT: [parameters]
+
+Mode CRITIC:
+[MODE: CRITIC]
+[REFLECT]
+✓ Strengths: [apa yang bagus]
+✗ Weaknesses: [apa yang kurang]
+? Questions: [yang perlu diklarifikasi]
+Confidence: [0-100%]
+Decision: [REFINE/DELIVER]
+
+Final Answer (hanya setelah CRITIC approve):
+[MODE: FINAL]
+FINAL ANSWER: [jawaban lengkap]
+
+═══════════════════════════════════════════════════════════
+ATURAN KETAT
+═══════════════════════════════════════════════════════════
+
+1. SELALU mulai dengan [MODE: PLANNER] untuk task baru
+2. Jangan skip ke [MODE: FINAL] tanpa lewat CRITIC
+3. Confidence < 80% = wajib REFINE/ulang
+4. Code WAJIB divalidasi sebelum deliver
+5. "Fix", "tambah", "ubah" = merujuk context sebelumnya
+
+═══════════════════════════════════════════════════════════
+TOOLS TERSEDIA
+═══════════════════════════════════════════════════════════
+
+calculate      - Math expression
+get_time       - Current datetime
+remember       - Save to agent memory (key=value)
+recall         - Retrieve from memory
+list_memory    - List all memories
+save_ai_memory - Permanent AI memory
+fetch_url      - Web scraping
+search_web     - DuckDuckGo search
+uuid           - Generate UUID
+encode_b64     - Base64 encode
+decode_b64     - Base64 decode
+format_json    - Pretty JSON
+regex_test     - Test regex (pattern|||string)
+word_count     - Count words/chars
+create_file    - Create file (name|||content)
+read_file      - Read file
+edit_file      - Edit file (name|||old|||new)
+append_file    - Append to file
+list_files     - List files
+delete_file    - Delete file
+shell_exec     - Execute shell command
+timer_set      - Set timer/reminder
+process_list   - List processes
+
+═══════════════════════════════════════════════════════════
+CONTOH ALUR BENAR
+═══════════════════════════════════════════════════════════
+
+User: "Hitung luas lingkaran radius 7, simpan hasilnya"
+
+[MODE: PLANNER]
+[PLAN]
+Task: Hitung luas lingkaran dan simpan
+Step 1: Hitung luas → Tool: calculate → Expected: hasil numerik
+Step 2: Simpan hasil → Tool: remember → Expected: confirmation
+Dependencies: Step 1 → Step 2
+Confidence: 95%
+
+[MODE: EXECUTOR]
+THOUGHT: Perlu hitung π*r² dengan r=7
 ACTION: calculate
-INPUT: 2+2
+INPUT: 3.14159 * 7 * 7
 
-Contoh SALAH (DILARANG):
-"Hasilnya adalah 4" (tanpa format)`;
+[MODE: EXECUTOR]
+THOUGHT: Dapat hasil 153.938, sekarang simpan
+ACTION: remember
+INPUT: luas_lingkaran=153.938
 
+[MODE: CRITIC]
+[REFLECT]
+✓ Strengths: Perhitungan benar, format benar
+✗ Weaknesses: π hanya 5 desimal, bisa lebih presisi
+? Questions: Apakah user butuh precision lebih tinggi?
+Confidence: 85%
+Decision: DELIVER (acceptable precision)
+
+[MODE: FINAL]
+FINAL ANSWER: Luas lingkaran dengan radius 7 adalah **153.938** (menggunakan π ≈ 3.14159). Hasil disimpan ke memori dengan key "luas_lingkaran".
+
+[[MEM: last_calculation=luas lingkaran r=7 → 153.938]]
+`;
+
+// NOTE: AGENT_SYS updated to GazccAgent Pro v2 with full PLANNER/EXECUTOR/CRITIC cycle
+
+
+// ---- AGENT MODE INDICATOR ----
+function showAgentMode(mode,progress){
+  var indicator=document.getElementById('agentModeIndicator');
+  var dot=document.getElementById('modeDot');
+  var label=document.getElementById('modeLabel');
+  var progressBar=document.getElementById('agentProgress');
+  var progressBarInner=document.getElementById('agentProgressBar');
+  if(mode==='idle'){
+    indicator.classList.remove('show');
+    progressBar.style.display='none';
+    return;
+  }
+  indicator.classList.add('show');
+  progressBar.style.display='block';
+  dot.className='mode-dot '+mode;
+  label.className='mode-label '+mode;
+  var labels={
+    planner:'🧠 PLANNER',
+    executor:'⚡ EXECUTOR',
+    critic:'🔍 CRITIC',
+    thinking:'💭 THINKING'
+  };
+  label.textContent=labels[mode]||mode.toUpperCase();
+  if(progress!==undefined){
+    progressBarInner.style.width=Math.min(100,Math.max(0,progress))+'%';
+  }
+}
+
+function updateAgentProgress(step,total){
+  var pct=(step/total)*100;
+  document.getElementById('agentProgressBar').style.width=pct+'%';
+}
+
+function hideAgentMode(){
+  showAgentMode('idle');
+}
 
 // ---- AGENT RUNNER ----
 async function runAgent(userMsg,files){
@@ -1303,6 +1511,7 @@ async function runAgent(userMsg,files){
   var lbl=document.createElement('div');lbl.className='lbl';lbl.textContent=BOT+' [AGENT]';
   var bub=document.createElement('div');bub.className='bubble';bub.style.borderLeft='2px solid var(--pink)';
   wrap.appendChild(lbl);wrap.appendChild(bub);chat.appendChild(wrap);chat.scrollTop=chat.scrollHeight;
+  showAgentMode('thinking',10);
 
   var typDiv=document.createElement('div');typDiv.className='td';typDiv.innerHTML='<span></span><span></span><span></span>';
   bub.appendChild(typDiv);
@@ -1325,6 +1534,13 @@ async function runAgent(userMsg,files){
   for(var iter=0;iter<MAX_ITER;iter++){
     var res,d;
     try{
+      // Detect mode dari response sebelumnya
+      var lastReply=messages[messages.length-1]?.content||'';
+      if(lastReply.includes('[MODE: PLANNER]')) showAgentMode('planner', 20 + (iter*8));
+      else if(lastReply.includes('[MODE: EXECUTOR]')) showAgentMode('executor', 40 + (iter*6));
+      else if(lastReply.includes('[MODE: CRITIC]')) showAgentMode('critic', 70 + (iter*3));
+      else showAgentMode('thinking', 10 + (iter*5));
+      updateAgentProgress(iter, MAX_ITER);
       var aParts=[];var aSys=messages.find(function(m){return m.role==='system';});
       if(aSys)aParts.push('[SYSTEM]:\n'+aSys.content);
       messages.filter(function(m){return m.role!=='system';}).forEach(function(m){
@@ -1432,6 +1648,7 @@ async function runAgent(userMsg,files){
   hist.push({role:'user',content:userMsg||(files&&files.length?'[image/file]':'')});
   hist.push({role:'assistant',content:finalAnswer||'[agent done]'});
   if(hist.length>60)hist=hist.slice(-60);
+  hideAgentMode();
   badge();
 }
 
