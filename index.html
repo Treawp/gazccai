@@ -1137,10 +1137,10 @@ async function sendStream(messages,model){
     });
     var fullPrompt=promptParts.join('\n\n');
 
-    var cvUrl='https://api.covenant.sbs/api/ai/blackbox?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(SYS_PROMPT||'You are a helpful AI assistant.');
+    var cvUrl='/api/proxy?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(SYS_PROMPT||'You are a helpful AI assistant.')+'&key='+encodeURIComponent(API_KEY);
     var res,d;
     try{
-      res=await fetch(cvUrl,{method:'GET',headers:{'x-api-key':API_KEY}});
+      res=await fetch(cvUrl,{method:'GET'});
       d=await res.json();
     }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Covenant API error: '+e.message+'</div>';return null;}
     if(!d||!d.status){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d&&d.message?d.message:JSON.stringify(d))+'</div>';return null;}
@@ -1332,8 +1332,8 @@ async function runAgent(userMsg,files){
         aParts.push('['+m.role.toUpperCase()+']:\n'+c);
       });
       var aPrompt=aParts.join('\n\n');
-      var aUrl='https://api.covenant.sbs/api/ai/blackbox?question='+encodeURIComponent(aPrompt)+'&system='+encodeURIComponent(SYS_PROMPT||'You are a helpful AI assistant.');
-      res=await fetch(aUrl,{method:'GET',headers:{'x-api-key':API_KEY}});
+      var aUrl='/api/proxy?question='+encodeURIComponent(aPrompt)+'&system='+encodeURIComponent(SYS_PROMPT||'You are a helpful AI assistant.')+'&key='+encodeURIComponent(API_KEY);
+      res=await fetch(aUrl,{method:'GET'});
       d=await res.json();
       if(d&&d.data&&d.data.result){d={choices:[{message:{content:d.data.result}}]};}
     }catch(e){typDiv.remove();bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Agent error: '+e.message+'</div>';return;}
