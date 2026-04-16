@@ -445,10 +445,10 @@ strong{color:var(--txt);font-weight:600}
   <div class="setup-box">
     <div class="setup-logo">🤖</div>
     <h2>GazccAI Setup</h2>
-    <p>Pakai OpenRouter API — gratis, banyak model, support gambar, file, dan AI Memory.</p>
+    <p>Pakai Covenant API — masukkan API key kamu dari app.covenant.sbs/docs</p>
     <div>
-      <div class="field-label">OPENROUTER API KEY</div>
-      <input type="password" id="apiKey" placeholder="sk-or-v1-...">
+      <div class="field-label">COVENANT API KEY</div>
+      <input type="password" id="apiKey" placeholder="covenant-api-key-...">
     </div>
     <div>
       <div class="field-label">NAMA BOT</div>
@@ -458,9 +458,9 @@ strong{color:var(--txt);font-weight:600}
       <div class="field-label">SYSTEM PROMPT</div>
       <textarea id="sysPrompt" rows="3" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant. Answer in the same language as the user.</textarea>
     </div>
-    <div id="errMsg" class="err">API key tidak boleh kosong!</div>
+    <div id="errMsg" class="err">API key Covenant tidak boleh kosong!</div>
     <button id="startBtn" onclick="startApp()">MULAI CHAT ➤</button>
-    <a class="guide" href="https://openrouter.ai/keys" target="_blank">🔑 Dapetin API key gratis di openrouter.ai/keys</a>
+    <a class="guide" href="https://app.covenant.sbs/docs" target="_blank">📖 Lihat dokumentasi Covenant API di app.covenant.sbs/docs</a>
   </div>
 </div>
 
@@ -529,7 +529,7 @@ strong{color:var(--txt);font-weight:600}
     <div class="welcome" id="wlc">
       <div class="welcome-icon">🤖</div>
       <h2 id="wlcTitle">GazccAI</h2>
-      <div class="tag">POWERED BY OPENROUTER</div>
+      <div class="tag">POWERED BY COVENANT API</div>
       <p>Pilih model — ketik, kirim gambar, upload file, atau minta AI simpan info ke memori</p>
       <div class="caps">
         <span class="cap">🖼 Gambar + Agent</span>
@@ -855,7 +855,7 @@ function _buildChatUI(){
     '<div class="welcome" id="wlc">'+
     '<div class="welcome-icon">🤖</div>'+
     '<h2>'+BOT+'</h2>'+
-    '<div class="tag">POWERED BY OPENROUTER</div>'+
+    '<div class="tag">POWERED BY COVENANT API</div>'+
     '<p>Pilih model — ketik, kirim gambar, atau upload file</p>'+
     '<div class="caps"><span class="cap">🖼 Gambar + Agent</span><span class="cap">📄 PDF/File</span><span class="cap">🧠 AI Memory</span><span class="cap">💡 Auto Context</span><span class="cap">🔴 Streaming</span><span class="cap">💬 Multi-Chat</span></div></div>';
   var ab=document.getElementById('attachBar');ab.innerHTML='';ab.style.display='none';
@@ -1152,44 +1152,38 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':window.location.origin,'X-Title':BOT},
-      body:JSON.stringify({model:model,messages:messages,max_tokens:1000,include_reasoning:true,stream:true})
+    // Build full prompt dari messages
+    var promptParts=[];
+    var sysM=messages.find(function(m){return m.role==='system';});
+    if(sysM)promptParts.push('[SYSTEM]:\n'+sysM.content);
+    messages.filter(function(m){return m.role!=='system';}).forEach(function(m){
+      var c=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'');
+      promptParts.push('['+m.role.toUpperCase()+']:\n'+c);
     });
-    if(!res.ok){var err=await res.json();bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(err.error?err.error.message:JSON.stringify(err))+'</div>';return null;}
+    var fullPrompt=promptParts.join('\n\n');
 
-    var reader=res.body.getReader();var decoder=new TextDecoder();var buffer='';
-    outer:while(true){
-      var rv=await reader.read();if(rv.done)break;
-      buffer+=decoder.decode(rv.value,{stream:true});
-      var lines=buffer.split('\n');buffer=lines.pop()||'';
-      for(var li=0;li<lines.length;li++){
-        var line=lines[li];if(!line.startsWith('data: '))continue;
-        var data=line.slice(6).trim();if(data==='[DONE]')break outer;
-        try{
-          var j=JSON.parse(data);var delta=j.choices&&j.choices[0]&&j.choices[0].delta;if(!delta)continue;
-          if(delta.reasoning){
-            thinkingText+=delta.reasoning;
-            if(!thinkContent){
-              var tw2=document.createElement('div');tw2.className='thinking-wrap';
-              var tog2=document.createElement('div');tog2.className='thinking-toggle';
-              tog2.innerHTML='<span>🧠 Thinking...</span><span class="arrow">▶</span>';
-              thinkContent=document.createElement('div');thinkContent.className='thinking-content';
-              (function(tc2,tg2){tg2.onclick=function(){var o=tc2.classList.contains('show');tc2.classList.toggle('show',!o);tg2.classList.toggle('open',!o);};})(thinkContent,tog2);
-              tw2.appendChild(tog2);tw2.appendChild(thinkContent);bub.appendChild(tw2);
-            }
-            thinkContent.textContent=thinkingText;chat.scrollTop=chat.scrollHeight;
-          }
-          if(delta.content){
-            replyText+=delta.content;
-            if(!replyDiv){replyDiv=document.createElement('div');replyDiv.appendChild(cursor);bub.appendChild(replyDiv);}
-            replyDiv.innerHTML=formatText(replyText);replyDiv.appendChild(cursor);chat.scrollTop=chat.scrollHeight;
-          }
-        }catch(e){}
+    var cvUrl='https://app.covenant.sbs/api/ai/blackbox?prompt='+encodeURIComponent(fullPrompt)+'&key='+encodeURIComponent(API_KEY)+'&model='+encodeURIComponent(model);
+    var res,d;
+    try{
+      res=await fetch(cvUrl,{method:'GET',headers:{'Content-Type':'application/json'}});
+      d=await res.json();
+    }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Covenant API error: '+e.message+'</div>';return null;}
+    if(!d||!d.status){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d&&d.message?d.message:JSON.stringify(d))+'</div>';return null;}
+    replyText=(d.data&&d.data.result)?d.data.result:'';
+    if(!replyDiv){replyDiv=document.createElement('div');replyDiv.appendChild(cursor);bub.appendChild(replyDiv);}
+
+    // Typewriter effect
+    var ci=0;
+    await new Promise(function(resolve){
+      function typeNext(){
+        if(ci>=replyText.length){replyDiv.innerHTML=formatText(replyText);chat.scrollTop=chat.scrollHeight;resolve();return;}
+        ci=Math.min(ci+4,replyText.length);
+        replyDiv.innerHTML=formatText(replyText.slice(0,ci))+'<span class="stream-cursor"></span>';
+        chat.scrollTop=chat.scrollHeight;setTimeout(typeNext,8);
       }
-    }
-  }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Stream error: '+e.message+'</div>';return null;}
+      typeNext();
+    });
+  }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Error: '+e.message+'</div>';return null;}
 
   if(cursor.parentNode)cursor.parentNode.removeChild(cursor);
 
@@ -1356,8 +1350,17 @@ async function runAgent(userMsg,files){
   for(var iter=0;iter<MAX_ITER;iter++){
     var res,d;
     try{
-      res=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':window.location.origin,'X-Title':BOT},body:JSON.stringify({model:model,messages:messages,max_tokens:iter===MAX_ITER-1?2000:1200,temperature:0.15})});
+      var aParts=[];var aSys=messages.find(function(m){return m.role==='system';});
+      if(aSys)aParts.push('[SYSTEM]:\n'+aSys.content);
+      messages.filter(function(m){return m.role!=='system';}).forEach(function(m){
+        var c=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'');
+        aParts.push('['+m.role.toUpperCase()+']:\n'+c);
+      });
+      var aPrompt=aParts.join('\n\n');
+      var aUrl='https://app.covenant.sbs/api/ai/blackbox?prompt='+encodeURIComponent(aPrompt)+'&key='+encodeURIComponent(API_KEY)+'&model='+encodeURIComponent(model);
+      res=await fetch(aUrl,{method:'GET',headers:{'Content-Type':'application/json'}});
       d=await res.json();
+      if(d&&d.data&&d.data.result){d={choices:[{message:{content:d.data.result}}]};}
     }catch(e){typDiv.remove();bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Agent error: '+e.message+'</div>';return;}
 
     if(!d.choices||!d.choices[0]){typDiv.remove();bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d.error?d.error.message:JSON.stringify(d))+'</div>';return;}
