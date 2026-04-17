@@ -1583,176 +1583,64 @@ async function runAgent(userMsg,files){
   var typDiv=document.createElement('div');typDiv.className='td';typDiv.innerHTML='<span></span><span></span><span></span>';
   bub.appendChild(typDiv);
 
-  var finalAnswer='';
-  var stepCount=0;
+  var AGENT_SYS='Kamu adalah GazccThinking — AI agent otonom yang cerdas, analitis, dan hasil-oriented. '+
+    'Selesaikan task user secara menyeluruh: analisis, reasoning step-by-step, berikan solusi final yang konkret dan actionable. '+
+    'Format jawaban dengan jelas, gunakan markdown bila perlu. Jangan setengah-setengah.';
 
-  // Helper: add a step card to bubble
-  function addStepCard(num,thought,toolName,toolInput,observation){
-    var sd=document.createElement('div');sd.className='agent-step';
-    var uid='as_'+Date.now()+'_'+num;
-    var toolLabel=toolName?('<span class="step-tool">'+toolName.toUpperCase()+'</span>'):'';
-    sd.innerHTML=
-      '<div class="agent-step-hdr" onclick="toggleStep(\''+uid+'\')">'+
-        '<div class="step-num">'+num+'</div>'+toolLabel+
-        '<span class="step-label">'+escH((thought||toolInput||'').slice(0,55))+'</span>'+
-        '<span class="step-arrow" id="arr_'+uid+'">▶</span>'+
-      '</div>'+
-      '<div class="step-body" id="'+uid+'">'+
-        (thought?'<div class="step-thought">'+escH(thought)+'</div>':'')+
-        (toolName?'<div class="step-action-box">→ '+escH(toolName)+'( '+escH(toolInput||'')+')</div>':'')+
-        (observation?'<div class="step-obs">⟵ '+escH(String(observation).slice(0,400))+'</div>':'')+
-      '</div>';
-    bub.appendChild(sd);
-    chat.scrollTop=chat.scrollHeight;
-  }
-
-  // ---- Try SSE streaming via /api/run ----
   try{
-    var sseRes=await fetch(GAZCC_AGENT+'/api/run',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({task:userMsg||(files&&files.length?'[file attached]':''),context:buildMemoryPrompt()||undefined})
-    });
-    if(!sseRes.ok)throw new Error('HTTP '+sseRes.status);
-    if(!sseRes.body)throw new Error('no body');
-
-    typDiv.remove();
-    var reader=sseRes.body.getReader();var dec=new TextDecoder();var buf='';
-    var pendingTool={};
-
-    outer:while(true){
-      var chunk=await reader.read();
-      if(chunk.done)break;
-      buf+=dec.decode(chunk.value,{stream:true});
-      var lines=buf.split('\n');buf=lines.pop();
-
-      for(var li=0;li<lines.length;li++){
-        var line=lines[li].trim();
-        if(!line)continue;
-        if(!line.startsWith('data:'))continue;
-        var ds=line.slice(5).trim();
-        if(ds==='[DONE]')break outer;
-        var ev;
-        try{ev=JSON.parse(ds);}catch(pe){if(ds.length>8)finalAnswer=finalAnswer||ds;continue;}
-
-        stepCount++;
-        var etype=(ev.type||ev.event||'').toLowerCase();
-        showAgentMode('thinking',Math.min(88,10+stepCount*8));
-
-        if(etype==='thinking'||etype==='thought'||etype==='plan'){
-          showAgentMode(etype==='plan'?'planner':'thinking',Math.min(88,20+stepCount*7));
-          var th=ev.content||ev.thought||ev.message||'';
-          addStepCard(stepCount,th,'','','');
-        } else if(etype==='tool_use'||etype==='action'||etype==='tool_call'){
-          showAgentMode('executor',Math.min(88,40+stepCount*5));
-          pendingTool={name:ev.tool||ev.name||ev.tool_name||'',input:typeof ev.input==='object'?JSON.stringify(ev.input,null,2):(ev.input||ev.parameters||'')};
-          addStepCard(stepCount,'',pendingTool.name,pendingTool.input,'');
-        } else if(etype==='tool_result'||etype==='observation'||etype==='tool_output'){
-          showAgentMode('critic',Math.min(88,60+stepCount*3));
-          var obs=ev.content||ev.result||ev.output||'';
-          if(typeof obs==='object')obs=JSON.stringify(obs);
-          // Append to last step card if it has action box
-          var lastStep=bub.lastElementChild;
-          if(lastStep&&lastStep.classList.contains('agent-step')){
-            var body=lastStep.querySelector('.step-body');
-            if(body&&!body.querySelector('.step-obs')){var obsEl=document.createElement('div');obsEl.className='step-obs';obsEl.textContent='⟵ '+String(obs).slice(0,400);body.appendChild(obsEl);}
-          }
-        } else if(etype==='result'||etype==='final_answer'||etype==='done'||etype==='complete'||etype==='finish'){
-          finalAnswer=ev.result||ev.content||ev.answer||ev.output||finalAnswer;
-        } else if(etype==='error'||etype==='failed'){
-          throw new Error(ev.message||ev.error||'Agent error');
-        } else {
-          // Generic — might carry content
-          var gc=ev.content||ev.message||ev.text||'';
-          if(gc&&gc.length>10)finalAnswer=finalAnswer||gc;
-        }
-        chat.scrollTop=chat.scrollHeight;
-      }
-    }
-    if(!finalAnswer)throw new Error('no final answer from SSE');
-
-  }catch(sseErr){
-    // ---- Fallback: /api/task + polling ----
-    try{
-      bub.innerHTML='';
-      var td2=document.createElement('div');td2.className='td';td2.innerHTML='<span></span><span></span><span></span>';
-      bub.appendChild(td2);showAgentMode('thinking',20);
-
-      var taskRes=await fetch(GAZCC_AGENT+'/api/task',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({task:userMsg||(files&&files.length?'[file attached]':'')})
+    var promptParts=[];
+    if(hist&&hist.length){
+      hist.slice(-10).forEach(function(m){
+        var c=typeof m.content==='string'?m.content:'[file]';
+        promptParts.push('['+m.role.toUpperCase()+']:\n'+c);
       });
-      var taskData=await taskRes.json();
-      var taskId=taskData.task_id||taskData.id||taskData.taskId;
-      if(!taskId)throw new Error('no task_id: '+JSON.stringify(taskData));
+    }
+    promptParts.push('[USER]:\n'+(userMsg||''));
+    var fullPrompt=promptParts.join('\n\n');
 
-      var pollMax=60,pollN=0,pollResult='';
-      while(pollN<pollMax){
-        await new Promise(function(r){setTimeout(r,2500);});
-        var pr=await fetch(GAZCC_AGENT+'/api/task/'+taskId);
-        var pd=await pr.json();pollN++;
-        showAgentMode('thinking',Math.min(88,20+pollN*1.3));
-        var st=(pd.status||'').toLowerCase();
-        if(st==='completed'||st==='done'||st==='finished'||st==='success'){
-          pollResult=pd.result||pd.answer||pd.output||pd.content||JSON.stringify(pd);break;
-        } else if(st==='failed'||st==='error'){
-          throw new Error(pd.error||pd.message||'Task failed');
-        }
-      }
-      if(!pollResult)throw new Error('polling timeout');
-      finalAnswer=pollResult;
-      td2.remove();
-    }catch(pollErr){
-      if(typDiv.parentNode)typDiv.remove();
-      bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ GazccThinking error: '+(pollErr.message||String(pollErr))+'</div>';
+    showAgentMode('thinking',40);
+    var cvUrl='/api/proxy?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(AGENT_SYS)+'&key='+encodeURIComponent(API_KEY);
+    var res=await fetch(cvUrl,{method:'GET'});
+    var d=await res.json();
+    typDiv.remove();
+
+    if(!d||!d.status){
+      bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ GazccThinking error: '+(d&&d.message?d.message:JSON.stringify(d))+'</div>';
       hideAgentMode();return;
     }
+
+    var finalAnswer=(d.data&&d.data.result)?d.data.result:(d.result||d.message||'');
+
+    var fa=document.createElement('div');
+    fa.innerHTML='<div class="agent-info-hdr">⚡ FINAL ANSWER</div>';
+    var agFinal=document.createElement('div');agFinal.className='agent-final';
+    fa.appendChild(agFinal);bub.appendChild(fa);
+
+    var agParsed=parseAiMemoryTags(finalAnswer);
+    finalAnswer=agParsed.cleaned;
+    updateLastCode(finalAnswer);
+
+    var ci=0;var fa_str=finalAnswer;
+    function typeNext(){
+      if(ci>=fa_str.length){agFinal.innerHTML=formatText(fa_str);addCopyBtn(bub,fa_str);chat.scrollTop=chat.scrollHeight;return;}
+      ci=Math.min(ci+5,fa_str.length);
+      agFinal.innerHTML=formatText(fa_str.slice(0,ci))+'<span class="stream-cursor"></span>';
+      chat.scrollTop=chat.scrollHeight;setTimeout(typeNext,10);
+    }
+    typeNext();
+
+    hist.push({role:'user',content:userMsg||''});
+    hist.push({role:'assistant',content:finalAnswer||'[agent done]'});
+    if(hist.length>60)hist=hist.slice(-60);
+    hideAgentMode();
+    badge();
+
+  }catch(e){
+    if(typDiv.parentNode)typDiv.remove();
+    bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ GazccThinking error: '+e.message+'</div>';
+    hideAgentMode();
   }
-
-  // ---- Render final answer ----
-  if(!finalAnswer)finalAnswer='GazccThinking agent tidak menghasilkan jawaban.';
-
-  var fa=document.createElement('div');
-  fa.innerHTML='<div class="agent-info-hdr">⚡ FINAL ANSWER</div>';
-  var agFinal=document.createElement('div');agFinal.className='agent-final';
-  fa.appendChild(agFinal);bub.appendChild(fa);
-
-  var fileKeys=Object.keys(agentFiles);
-  if(fileKeys.length){
-    var fpanel=document.createElement('div');fpanel.className='files-panel';
-    fpanel.innerHTML='<div class="files-panel-hdr">📁 FILES — klik untuk download</div>';
-    fileKeys.forEach(function(k){
-      var f=agentFiles[k];var chip=document.createElement('a');chip.className='file-dl-chip';chip.href='#';
-      var ext=k.split('.').pop().toLowerCase();
-      var icon=ext==='lua'?'🌙':ext==='js'||ext==='ts'?'📜':ext==='py'?'🐍':ext==='html'?'🌐':ext==='json'?'{}':ext==='txt'?'📝':'📄';
-      chip.innerHTML=icon+' <strong>'+escH(k)+'</strong> <span style="color:var(--muted);font-size:10px">'+f.content.length+' chars</span>';
-      chip.onclick=function(e){e.preventDefault();downloadAgentFile(k);};fpanel.appendChild(chip);
-    });
-    bub.appendChild(fpanel);
-  }
-
-  var agParsed=parseAiMemoryTags(finalAnswer);
-  finalAnswer=agParsed.cleaned;
-  updateLastCode(finalAnswer);
-
-  var ci=0;var fa_str=finalAnswer;
-  function typeNext(){
-    if(ci>=fa_str.length){agFinal.innerHTML=formatText(fa_str);addCopyBtn(bub,fa_str);chat.scrollTop=chat.scrollHeight;return;}
-    ci=Math.min(ci+5,fa_str.length);
-    agFinal.innerHTML=formatText(fa_str.slice(0,ci))+'<span class="stream-cursor"></span>';
-    chat.scrollTop=chat.scrollHeight;setTimeout(typeNext,10);
-  }
-  typeNext();
-
-  hist.push({role:'user',content:userMsg||(files&&files.length?'[image/file]':'')});
-  hist.push({role:'assistant',content:finalAnswer||'[agent done]'});
-  if(hist.length>60)hist=hist.slice(-60);
-  hideAgentMode();
-  badge();
 }
-  var model=document.getElementById('msel').value;
-  var wrap=document.createElement('div');wrap.className='msg bot';wrap.style.maxWidth='98%';
 function toggleStep(uid){
   var body=document.getElementById(uid);var arr=document.getElementById('arr_'+uid);if(!body)return;
   var isOpen=body.classList.contains('show');body.classList.toggle('show',!isOpen);if(arr)arr.classList.toggle('open',!isOpen);
