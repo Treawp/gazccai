@@ -1336,6 +1336,14 @@ function toggleAgent(){
   if(agentMode) showAgentPopup();
 }
 
+function dismissAgentPopup(){
+  var o=document.getElementById('agentPopupOverlay');
+  if(!o)return;
+  if(o._timer)clearTimeout(o._timer);
+  var p=document.getElementById('agentPopup');
+  if(p){p.classList.add('hiding');setTimeout(function(){var o2=document.getElementById('agentPopupOverlay');if(o2)o2.remove();},380);}
+  else{o.remove();}
+}
 function showAgentPopup(){
   var old=document.getElementById('agentPopupOverlay');if(old)old.remove();
   var overlay=document.createElement('div');
@@ -1359,11 +1367,9 @@ function showAgentPopup(){
       '</div>'+
       '<div class="ap-dismiss-bar"><div class="ap-dismiss-fill"></div></div>'+
     '</div>';
+  overlay.addEventListener('click',function(){dismissAgentPopup();});
   document.body.appendChild(overlay);
-  setTimeout(function(){
-    var p=document.getElementById('agentPopup');
-    if(p){p.classList.add('hiding');setTimeout(function(){var o=document.getElementById('agentPopupOverlay');if(o)o.remove();},380);}
-  },2500);
+  overlay._timer=setTimeout(function(){dismissAgentPopup();},2500);
 }
 
 // ---- AGENT TOOLS ----
