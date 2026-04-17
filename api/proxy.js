@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     if (system) params.set('system', system);
 
     const response = await fetch(
-      `https://api.covenant.sbs/api/ai/blackbox?${params.toString()}`,
+      `https://api.covenant.sbs/api/ai/deepseek?${params.toString()}`,
       { method: 'GET', headers: { 'x-api-key': key } }
     );
     const data = await response.json();
