@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>GazccAI</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -85,23 +85,16 @@ a.guide{font-size:11px;color:var(--cyan);text-align:center;display:block;text-de
 
 /* === HEADER === */
 header{
-  position:fixed;top:0;left:0;right:0;height:52px;
-  display:flex;align-items:center;gap:6px;padding:0 10px;
+  position:fixed;top:0;left:0;right:0;height:58px;
+  display:flex;align-items:center;gap:8px;padding:0 12px;
   background:var(--glass2);border-bottom:1px solid rgba(0,212,255,0.08);
   z-index:999;backdrop-filter:blur(20px);
   box-shadow:0 1px 0 rgba(0,212,255,0.05);
-  overflow:hidden;
-}
-@media(max-width:480px){
-  header{gap:4px;padding:0 8px;}
-  .hbtn{width:26px!important;height:26px!important;font-size:12px!important;}
-  .bot-title{font-size:13px!important;}
-  select#msel{max-width:110px!important;font-size:9px!important;}
 }
 .logo{
-  width:30px;height:30px;border-radius:8px;flex-shrink:0;
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
   background:linear-gradient(135deg,var(--purple),var(--cyan));
-  display:flex;align-items:center;justify-content:center;font-size:15px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
   box-shadow:0 0 20px rgba(123,47,255,0.5);
   animation:logoPulse 3s ease-in-out infinite;
 }
@@ -117,7 +110,7 @@ select#msel{
   background:rgba(0,0,0,0.4);border:1px solid var(--brd);border-radius:8px;
   color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:10px;
   padding:5px 28px 5px 8px;outline:none;cursor:pointer;
-  -webkit-appearance:none;appearance:none;max-width:130px;
+  -webkit-appearance:none;appearance:none;max-width:160px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300d4ff'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 8px center;
 }
@@ -126,8 +119,8 @@ select#msel option{background:#080d14;color:var(--txt)}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 .hbtn{
   background:rgba(0,0,0,0.3);border:1px solid var(--brd);border-radius:8px;
-  color:var(--muted);width:28px;height:28px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;font-size:12px;
+  color:var(--muted);width:30px;height:30px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:13px;
   flex-shrink:0;-webkit-tap-highlight-color:transparent;
   transition:border-color .2s,color .2s,background .2s;
   position:relative;
@@ -144,7 +137,7 @@ select#msel option{background:#080d14;color:var(--txt)}
 
 /* === CHAT === */
 #chat{
-  position:fixed;top:52px;bottom:70px;left:0;right:0;
+  position:fixed;top:58px;bottom:70px;left:0;right:0;
   overflow-y:auto;padding:16px 12px;
   display:flex;flex-direction:column;gap:12px;z-index:1;scroll-behavior:smooth;
 }
@@ -304,44 +297,6 @@ strong{color:var(--txt);font-weight:600}
 /* === AGENT MODE === */
 .agent-toggle{transition:all .2s}
 .agent-toggle.active{background:linear-gradient(135deg,var(--pink),var(--purple)) !important;border-color:var(--pink) !important;color:#fff !important;box-shadow:0 0 16px rgba(247,37,133,0.4)}
-/* === AGENT MODE INDICATOR === */
-.agent-mode-indicator{
-  position:fixed;top:52px;left:50%;transform:translateX(-50%);
-  display:flex;gap:8px;align-items:center;z-index:997;
-  background:var(--glass2);border:1px solid rgba(0,212,255,0.15);
-  border-radius:0 0 16px 16px;padding:6px 16px;
-  backdrop-filter:blur(12px);font-size:10px;
-  font-family:'Syne',sans-serif;letter-spacing:1px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.3);
-  transition:all .3s ease;opacity:0;pointer-events:none;
-}
-.agent-mode-indicator.show{opacity:1;}
-.mode-dot{width:8px;height:8px;border-radius:50%;animation:modePulse 1.5s infinite;}
-.mode-dot.planner{background:var(--cyan);box-shadow:0 0 10px var(--cyan);}
-.mode-dot.executor{background:var(--green);box-shadow:0 0 10px var(--green);}
-.mode-dot.critic{background:var(--pink);box-shadow:0 0 10px var(--pink);}
-.mode-dot.thinking{background:var(--yellow);box-shadow:0 0 10px var(--yellow);}
-
-@keyframes modePulse{
-  0%,100%{opacity:1;transform:scale(1)}
-  50%{opacity:.6;transform:scale(1.2)}
-}
-
-.mode-label{color:var(--txt);font-weight:600;}
-.mode-label.planner{color:var(--cyan);}
-.mode-label.executor{color:var(--green);}
-.mode-label.critic{color:var(--pink);}
-.mode-label.thinking{color:var(--yellow);}
-
-.agent-progress{
-  position:fixed;top:52px;left:0;right:0;height:2px;
-  background:rgba(0,212,255,0.1);z-index:998;
-}
-.agent-progress-bar{
-  height:100%;width:0%;
-  background:linear-gradient(90deg,var(--cyan),var(--purple));
-  transition:width .3s ease;box-shadow:0 0 10px var(--cyan);
-}
 .agent-badge{position:fixed;top:62px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--pink),var(--purple));color:#fff;font-size:9px;letter-spacing:2px;font-family:'Syne',sans-serif;font-weight:700;padding:4px 16px;border-radius:0 0 12px 12px;z-index:998;animation:fu .3s ease;display:none}
 .agent-step{background:rgba(247,37,133,0.04);border:1px solid rgba(247,37,133,0.15);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .agent-step-hdr{display:flex;align-items:center;gap:8px;font-size:9px;font-family:'Syne',sans-serif;letter-spacing:1.5px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
@@ -425,42 +380,6 @@ strong{color:var(--txt);font-weight:600}
 .mem-tab{flex:1;padding:8px;border-radius:8px;border:1px solid var(--brd);background:transparent;color:var(--muted);font-size:10px;font-family:'Syne',sans-serif;cursor:pointer;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:all .2s;-webkit-tap-highlight-color:transparent}
 .mem-tab.active{background:rgba(6,214,160,0.08);border-color:rgba(6,214,160,0.25);color:var(--green)}
 .mem-divider{font-size:9px;letter-spacing:2px;color:var(--muted);font-family:'Syne',sans-serif;text-transform:uppercase;padding:4px 0;text-align:center}
-
-/* === AGENT MODE INDICATOR === */
-.agent-mode-indicator{
-  position:fixed;top:52px;left:50%;transform:translateX(-50%);
-  display:flex;gap:8px;align-items:center;z-index:997;
-  background:var(--glass2);border:1px solid rgba(0,212,255,0.15);
-  border-radius:0 0 16px 16px;padding:6px 16px;
-  backdrop-filter:blur(12px);font-size:10px;
-  font-family:'Syne',sans-serif;letter-spacing:1px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.3);
-  transition:all .3s ease;opacity:0;pointer-events:none;
-}
-.agent-mode-indicator.show{opacity:1;}
-.mode-dot{width:8px;height:8px;border-radius:50%;animation:modePulse 1.5s infinite;}
-.mode-dot.planner{background:var(--cyan);box-shadow:0 0 10px var(--cyan);}
-.mode-dot.executor{background:var(--green);box-shadow:0 0 10px var(--green);}
-.mode-dot.critic{background:var(--pink);box-shadow:0 0 10px var(--pink);}
-.mode-dot.thinking{background:var(--yellow);box-shadow:0 0 10px var(--yellow);}
-@keyframes modePulse{
-  0%,100%{opacity:1;transform:scale(1)}
-  50%{opacity:.6;transform:scale(1.2)}
-}
-.mode-label{color:var(--txt);font-weight:600;}
-.mode-label.planner{color:var(--cyan);}
-.mode-label.executor{color:var(--green);}
-.mode-label.critic{color:var(--pink);}
-.mode-label.thinking{color:var(--yellow);}
-.agent-progress{
-  position:fixed;top:52px;left:0;right:0;height:2px;
-  background:rgba(0,212,255,0.1);z-index:998;
-}
-.agent-progress-bar{
-  height:100%;width:0%;
-  background:linear-gradient(90deg,var(--cyan),var(--purple));
-  transition:width .3s ease;box-shadow:0 0 10px var(--cyan);
-}
 </style>
 </head>
 <body>
@@ -526,10 +445,10 @@ strong{color:var(--txt);font-weight:600}
   <div class="setup-box">
     <div class="setup-logo">🤖</div>
     <h2>GazccAI Setup</h2>
-    <p>Pakai Covenant API — masukkan API key kamu dari app.covenant.sbs/docs</p>
+    <p>Pakai OpenRouter API — gratis, banyak model, support gambar, file, dan AI Memory.</p>
     <div>
-      <div class="field-label">COVENANT API KEY</div>
-      <input type="password" id="apiKey" placeholder="covenant-api-key-...">
+      <div class="field-label">OPENROUTER API KEY</div>
+      <input type="password" id="apiKey" placeholder="sk-or-v1-...">
     </div>
     <div>
       <div class="field-label">NAMA BOT</div>
@@ -539,9 +458,9 @@ strong{color:var(--txt);font-weight:600}
       <div class="field-label">SYSTEM PROMPT</div>
       <textarea id="sysPrompt" rows="3" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant. Answer in the same language as the user.</textarea>
     </div>
-    <div id="errMsg" class="err">API key Covenant tidak boleh kosong!</div>
+    <div id="errMsg" class="err">API key tidak boleh kosong!</div>
     <button id="startBtn" onclick="startApp()">MULAI CHAT ➤</button>
-    <a class="guide" href="https://app.covenant.sbs/docs" target="_blank">📖 Lihat dokumentasi Covenant API di app.covenant.sbs/docs</a>
+    <a class="guide" href="https://openrouter.ai/keys" target="_blank">🔑 Dapetin API key gratis di openrouter.ai/keys</a>
   </div>
 </div>
 
@@ -552,19 +471,51 @@ strong{color:var(--txt);font-weight:600}
     <div class="bot-title" id="headerTitle">GazccAI</div>
     <div class="mwrap">
       <select id="msel">
-        <optgroup label="── Covenant Blackbox ──">
-          <option value="blackbox">Blackbox AI 🔥</option>
-          <option value="deepseek">deepseek v2</option>
-          <option value="spotify/download">spotify download</option>
-          <option value="gpt-4o-mini">GPT-4o Mini ⚡</option>
-          <option value="claude-sonnet">Claude Sonnet 🧠</option>
-          <option value="gemini-pro">Gemini Pro 🔮</option>
-          <option value="deepseek-v3">DeepSeek V3 💻</option>
-          <option value="llama-3.3-70b">Llama 3.3 70B 🦙</option>
+        <optgroup label="── 💻 Coding Specialist ──">
+          <option value="qwen/qwen2.5-coder-32b-instruct">Qwen2.5 Coder 32B 🔥</option>
+          <option value="deepseek/deepseek-coder-v2-lite-instruct">DeepSeek Coder V2 ⚡</option>
+          <option value="openai/gpt-4.1">GPT-4.1 💻</option>
+          <option value="openai/gpt-4.1-mini">GPT-4.1 Mini ⚡</option>
+          <option value="google/gemini-3-flash-preview">Gemini v3</option>
+        </optgroup>
+        <optgroup label="── Claude (Anthropic) ──">
+          <option value="anthropic/claude-opus-4-6">Claude Opus 4.6</option>
+          <option value="anthropic/claude-sonnet-4-6">Claude Sonnet 4.6 🧠</option>
+          <option value="anthropic/claude-3.7-sonnet">Claude 3.7 Sonnet 🧠</option>
+          <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet ✦</option>
+          <option value="anthropic/claude-3.5-haiku">Claude 3.5 Haiku ⚡</option>
+        </optgroup>
+        <optgroup label="── Google ──">
+          <option value="google/gemini-2.5-flash-preview:thinking">Gemini 2.5 Flash 🧠⚡</option>
+          <option value="google/gemini-2.5-pro-preview">Gemini 2.5 Pro 🔥</option>
+          <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash 👁</option>
+          <option value="google/gemma-3-27b-it:free">Gemma 3 27B 👁</option>
+        </optgroup>
+        <optgroup label="── OpenAI ──">
+          <option value="openai/gpt-4o">GPT-4o 👁</option>
+          <option value="openai/gpt-4o-mini">GPT-4o Mini ⚡</option>
+          <option value="openai/o4-mini">o4-mini 🧠</option>
+        </optgroup>
+        <optgroup label="── DeepSeek ──">
+          <option value="deepseek/deepseek-v3.2-speciale">DeepSeek v3.2</option>
+          <option value="deepseek/deepseek-r1:free">DeepSeek R1 🧠 Free</option>
+          <option value="deepseek/deepseek-prover-v2">DeepSeek Prover V2</option>
+        </optgroup>
+        <optgroup label="── Meta / Qwen ──">
+          <option value="meta-llama/llama-4-maverick">Llama 4 Maverick 👁</option>
+          <option value="meta-llama/llama-4-scout">Llama 4 Scout ⚡</option>
+          <option value="meta-llama/llama-3.2-11b-vision-instruct:free">Llama 3.2 Vision 👁 Free</option>
+          <option value="black-forest-labs/flux.2-max">black image</option>
+          <option value="sourceful/riverflow-v2-fast">sourceful fast</option>
+        </optgroup>
+        <optgroup label="── Other ──">
+          <option value="openrouter/elephant-alpha">elephant ai</option>
+          <option value="minimax/minimax-m2.5:free">minimax v2.5 free</option>
+          <option value="stepfun/step-3.5-flash">Step 3.5 Flash ⚡</option>
         </optgroup>
       </select>
     </div>
-    <button class="hbtn agent-toggle" id="agentToggle" onclick="toggleAgent()" title="GazccAgent Mode">🤖</button>
+    <button class="hbtn agent-toggle" id="agentToggle" onclick="toggleAgent()" title="Gazcc Thinking Mode">🤖</button>
     <button class="hbtn" id="memBtn" onclick="openMemPanel()" title="AI Memory">🧠<div class="mem-badge" id="memBadge"></div></button>
     <button class="hbtn" onclick="openHistDrawer()" title="Chat History">💬</button>
     <button class="hbtn" onclick="exportChat()" title="Export Chat">💾</button>
@@ -572,21 +523,13 @@ strong{color:var(--txt);font-weight:600}
     <button class="hbtn" onclick="resetSetup()" title="Settings">⚙</button>
     <div class="pulse"></div>
   </header>
-  <!-- AGENT MODE INDICATOR -->
-  <div class="agent-mode-indicator" id="agentModeIndicator">
-    <div class="mode-dot thinking" id="modeDot"></div>
-    <span class="mode-label thinking" id="modeLabel">THINKING</span>
-  </div>
-  <div class="agent-progress" id="agentProgress" style="display:none">
-    <div class="agent-progress-bar" id="agentProgressBar"></div>
-  </div>
-  <div class="agent-badge" id="agentBadge">⚡ GAZCC AGENT MODE AKTIF</div>
+  <div class="agent-badge" id="agentBadge">🤖 GAZCC AGENT AKTIF</div>
 
   <div id="chat">
     <div class="welcome" id="wlc">
       <div class="welcome-icon">🤖</div>
       <h2 id="wlcTitle">GazccAI</h2>
-      <div class="tag">POWERED BY COVENANT API</div>
+      <div class="tag">POWERED BY OPENROUTER</div>
       <p>Pilih model — ketik, kirim gambar, upload file, atau minta AI simpan info ke memori</p>
       <div class="caps">
         <span class="cap">🖼 Gambar + Agent</span>
@@ -912,7 +855,7 @@ function _buildChatUI(){
     '<div class="welcome" id="wlc">'+
     '<div class="welcome-icon">🤖</div>'+
     '<h2>'+BOT+'</h2>'+
-    '<div class="tag">POWERED BY COVENANT API</div>'+
+    '<div class="tag">POWERED BY OPENROUTER</div>'+
     '<p>Pilih model — ketik, kirim gambar, atau upload file</p>'+
     '<div class="caps"><span class="cap">🖼 Gambar + Agent</span><span class="cap">📄 PDF/File</span><span class="cap">🧠 AI Memory</span><span class="cap">💡 Auto Context</span><span class="cap">🔴 Streaming</span><span class="cap">💬 Multi-Chat</span></div></div>';
   var ab=document.getElementById('attachBar');ab.innerHTML='';ab.style.display='none';
@@ -1209,38 +1152,44 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    // Build full prompt dari messages
-    var promptParts=[];
-    var sysM=messages.find(function(m){return m.role==='system';});
-    if(sysM)promptParts.push('[SYSTEM]:\n'+sysM.content);
-    messages.filter(function(m){return m.role!=='system';}).forEach(function(m){
-      var c=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'');
-      promptParts.push('['+m.role.toUpperCase()+']:\n'+c);
+    var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':window.location.origin,'X-Title':BOT},
+      body:JSON.stringify({model:model,messages:messages,max_tokens:1000,include_reasoning:true,stream:true})
     });
-    var fullPrompt=promptParts.join('\n\n');
+    if(!res.ok){var err=await res.json();bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(err.error?err.error.message:JSON.stringify(err))+'</div>';return null;}
 
-    var cvUrl='/api/proxy?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(SYS_PROMPT||'You are a helpful AI assistant.')+'&key='+encodeURIComponent(API_KEY);
-    var res,d;
-    try{
-      res=await fetch(cvUrl,{method:'GET'});
-      d=await res.json();
-    }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Covenant API error: '+e.message+'</div>';return null;}
-    if(!d||!d.status){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d&&d.message?d.message:JSON.stringify(d))+'</div>';return null;}
-    replyText=(d.data&&d.data.result)?d.data.result:'';
-    if(!replyDiv){replyDiv=document.createElement('div');replyDiv.appendChild(cursor);bub.appendChild(replyDiv);}
-
-    // Typewriter effect
-    var ci=0;
-    await new Promise(function(resolve){
-      function typeNext(){
-        if(ci>=replyText.length){replyDiv.innerHTML=formatText(replyText);chat.scrollTop=chat.scrollHeight;resolve();return;}
-        ci=Math.min(ci+4,replyText.length);
-        replyDiv.innerHTML=formatText(replyText.slice(0,ci))+'<span class="stream-cursor"></span>';
-        chat.scrollTop=chat.scrollHeight;setTimeout(typeNext,8);
+    var reader=res.body.getReader();var decoder=new TextDecoder();var buffer='';
+    outer:while(true){
+      var rv=await reader.read();if(rv.done)break;
+      buffer+=decoder.decode(rv.value,{stream:true});
+      var lines=buffer.split('\n');buffer=lines.pop()||'';
+      for(var li=0;li<lines.length;li++){
+        var line=lines[li];if(!line.startsWith('data: '))continue;
+        var data=line.slice(6).trim();if(data==='[DONE]')break outer;
+        try{
+          var j=JSON.parse(data);var delta=j.choices&&j.choices[0]&&j.choices[0].delta;if(!delta)continue;
+          if(delta.reasoning){
+            thinkingText+=delta.reasoning;
+            if(!thinkContent){
+              var tw2=document.createElement('div');tw2.className='thinking-wrap';
+              var tog2=document.createElement('div');tog2.className='thinking-toggle';
+              tog2.innerHTML='<span>🧠 Thinking...</span><span class="arrow">▶</span>';
+              thinkContent=document.createElement('div');thinkContent.className='thinking-content';
+              (function(tc2,tg2){tg2.onclick=function(){var o=tc2.classList.contains('show');tc2.classList.toggle('show',!o);tg2.classList.toggle('open',!o);};})(thinkContent,tog2);
+              tw2.appendChild(tog2);tw2.appendChild(thinkContent);bub.appendChild(tw2);
+            }
+            thinkContent.textContent=thinkingText;chat.scrollTop=chat.scrollHeight;
+          }
+          if(delta.content){
+            replyText+=delta.content;
+            if(!replyDiv){replyDiv=document.createElement('div');replyDiv.appendChild(cursor);bub.appendChild(replyDiv);}
+            replyDiv.innerHTML=formatText(replyText);replyDiv.appendChild(cursor);chat.scrollTop=chat.scrollHeight;
+          }
+        }catch(e){}
       }
-      typeNext();
-    });
-  }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Error: '+e.message+'</div>';return null;}
+    }
+  }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Stream error: '+e.message+'</div>';return null;}
 
   if(cursor.parentNode)cursor.parentNode.removeChild(cursor);
 
@@ -1302,8 +1251,16 @@ function downloadAgentFile(name){var f=agentFiles[name];if(!f)return;var blob=ne
 function toggleAgent(){
   agentMode=!agentMode;
   var aBtn=document.getElementById('agentToggle');var badge=document.getElementById('agentBadge');
-  aBtn.classList.toggle('active',agentMode);badge.style.display=agentMode?'block':'none';
-  document.getElementById('inp').placeholder=agentMode?'Minta GazccAgent selesaikan task...':'Ketik pesan... (Ctrl+V paste gambar)';
+  aBtn.classList.toggle('active',agentMode);
+  if(agentMode){
+    badge.style.display='block';badge.style.opacity='1';badge.style.transition='opacity 0.5s';
+    clearTimeout(badge._t);
+    badge._t=setTimeout(function(){
+      badge.style.opacity='0';
+      setTimeout(function(){badge.style.display='none';badge.style.opacity='1';},500);
+    },1500);
+  }else{badge.style.display='none';}
+  document.getElementById('inp').placeholder=agentMode?'Kirim task ke Gazcc Agent (Vercel)...':'Ketik pesan... (Ctrl+V paste gambar)';
 }
 
 // ---- AGENT TOOLS ----
@@ -1330,312 +1287,279 @@ var AGENT_TOOLS={
   save_ai_memory:{desc:'Simpan ke AI Memory. Input: key=value',run:function(input){var idx=input.indexOf('=');if(idx<0)return 'Error: format key=value';var k=input.slice(0,idx).trim(),v=input.slice(idx+1).trim();aiMemory[k]=v;saveAiMemory();updateMemBadge();return 'AI Memory: '+k+' = '+v;}}
 };
 
-var AGENT_SYS=`Kamu adalah GazccAgent Pro — AI agent autonomous dengan 3 persona internal:
+var AGENT_SYS=`You are Gazcc Thinking, an expert AI architect and agent systems engineer. You are a next-generation AI Agent inspired by the capabilities of Opus 4.7.
 
-═══════════════════════════════════════════════════════════
-🧠 PLANNER → ⚡ EXECUTOR → 🔍 CRITIC (siklus berulang)
-═══════════════════════════════════════════════════════════
+## CORE IDENTITY
+You embody these characteristics:
+- LONG-RUNNING & ASYNCHRONOUS ARCHITECTURE: Designed for extended workflow execution, task queuing, state persistence, pause/resume, timeout recovery.
+- MULTI-STEP TASK ORCHESTRATION: Break complex tasks into discrete trackable steps, manage dependencies, support parallel execution, maintain context across steps.
+- CODING & DEBUGGING SPECIALIST: Deep code analysis, multi-file codebase navigation, incremental debugging with state tracking, automated testing loops, git integration awareness.
+- KNOWLEDGE WORK ENHANCEMENT: Document drafting with iterative refinement, data analysis pipelines, research synthesis across multiple sources.
+- RELIABILITY & COHERENCE: Self-correction mechanisms, confidence scoring, checkpoint system, context window management.
 
-Setiap task WAJIB melalui siklus ini minimal 1x:
+## AGENT LOOP (always internalize this):
+assess_state → plan_next_actions → execute_step → verify_result → checkpoint_if_needed → repeat until done
 
-[PLANNER] Analisis & Decomposition:
-- Pecah task kompleks jadi sub-task atomic
-- Tentukan urutan dan dependencies
-- Pilih tools yang tepat
-- Output: [PLAN] dengan langkah terstruktur
+## STRICT FORMAT RULES:
+1. ALWAYS use this format when using a tool:
+   THOUGHT: [your reasoning and plan]
+   ACTION: [exact_tool_name]
+   INPUT: [tool input]
 
-[EXECUTOR] Eksekusi & Action:
-- Jalankan tools sesuai plan
-- Handle errors & edge cases
-- Kumpulkan observasi/data
-- Output: Hasil eksekusi mentah
+2. After receiving OBSERVATION, continue with next THOUGHT.
 
-[CRITIC] Review & Reflection:
-- Evaluasi: Akurat? Lengkap? Sesuai goal?
-- Identifikasi kekurangan/masalah
-- Putuskan: REFINE (ulang) atau DELIVER
-- Output: [REFLECT] dengan confidence score
+3. When task is complete or question is simple, close ONLY with:
+   FINAL ANSWER: [complete markdown answer]
 
-═══════════════════════════════════════════════════════════
-FORMAT OUTPUT WAJIB
-═══════════════════════════════════════════════════════════
+4. NEVER write free text outside this format. NEVER skip ACTION if task requires a tool.
 
-Mode PLANNER:
-[MODE: PLANNER]
-[PLAN]
-Task: [objektif]
-Step 1: [aksi] → Tool: [nama] → Expected: [output]
-...
-Dependencies: [urutan kritis]
-Confidence: [0-100%]
+5. MAINTAIN CONVERSATION CONTEXT: Prior chat history is injected. Stay on topic.
 
-Mode EXECUTOR:
-[MODE: EXECUTOR]
-THOUGHT: [rationale]
-ACTION: [tool_name]
-INPUT: [parameters]
+6. For coding tasks: always analyze before acting, verify after each step, explain what changed and why.
 
-Mode CRITIC:
-[MODE: CRITIC]
-[REFLECT]
-✓ Strengths: [apa yang bagus]
-✗ Weaknesses: [apa yang kurang]
-? Questions: [yang perlu diklarifikasi]
-Confidence: [0-100%]
-Decision: [REFINE/DELIVER]
+7. For research tasks: synthesize across multiple sources, cite confidence level, flag uncertainties.
 
-Final Answer (hanya setelah CRITIC approve):
-[MODE: FINAL]
-FINAL ANSWER: [jawaban lengkap]
+8. SELF-CORRECTION: If a step produces unexpected results, THOUGHT must acknowledge the issue and replan.
 
-═══════════════════════════════════════════════════════════
-ATURAN KETAT
-═══════════════════════════════════════════════════════════
+## AVAILABLE TOOLS:
+calculate    - evaluate math expression
+get_time     - current date and time
+remember     - store agent memory. Input: key=value
+recall       - retrieve agent memory. Input: key
+list_memory  - view all agent memory
+save_ai_memory - save to persistent AI Memory. Input: key=value
+fetch_url    - fetch URL content
+search_web   - web search via DuckDuckGo. Input: query
+uuid         - generate UUID. Input: count (number)
+encode_b64   - encode Base64. Input: text
+decode_b64   - decode Base64. Input: base64 string
+format_json  - pretty print JSON. Input: json string
+regex_test   - test regex. Input: pattern|||string
+word_count   - count words & characters. Input: text
+create_file  - create file. Input: name.ext|||content
+read_file    - read file. Input: filename
+edit_file    - edit file. Input: filename|||old_text|||new_text
+append_file  - append to file. Input: filename|||content
+list_files   - list all stored files
+delete_file  - delete file. Input: filename
 
-1. SELALU mulai dengan [MODE: PLANNER] untuk task baru
-2. Jangan skip ke [MODE: FINAL] tanpa lewat CRITIC
-3. Confidence < 80% = wajib REFINE/ulang
-4. Code WAJIB divalidasi sebelum deliver
-5. "Fix", "tambah", "ubah" = merujuk context sebelumnya
+## CORRECT EXAMPLE:
+THOUGHT: User wants to refactor a codebase. I'll start by reading the file to understand its structure.
+ACTION: read_file
+INPUT: main.lua
 
-═══════════════════════════════════════════════════════════
-TOOLS TERSEDIA
-═══════════════════════════════════════════════════════════
+## WRONG (FORBIDDEN):
+"Here is the answer:" (free text without format)
 
-calculate      - Math expression
-get_time       - Current datetime
-remember       - Save to agent memory (key=value)
-recall         - Retrieve from memory
-list_memory    - List all memories
-save_ai_memory - Permanent AI memory
-fetch_url      - Web scraping
-search_web     - DuckDuckGo search
-uuid           - Generate UUID
-encode_b64     - Base64 encode
-decode_b64     - Base64 decode
-format_json    - Pretty JSON
-regex_test     - Test regex (pattern|||string)
-word_count     - Count words/chars
-create_file    - Create file (name|||content)
-read_file      - Read file
-edit_file      - Edit file (name|||old|||new)
-append_file    - Append to file
-list_files     - List files
-delete_file    - Delete file
-shell_exec     - Execute shell command
-timer_set      - Set timer/reminder
-process_list   - List processes
-
-═══════════════════════════════════════════════════════════
-CONTOH ALUR BENAR
-═══════════════════════════════════════════════════════════
-
-User: "Hitung luas lingkaran radius 7, simpan hasilnya"
-
-[MODE: PLANNER]
-[PLAN]
-Task: Hitung luas lingkaran dan simpan
-Step 1: Hitung luas → Tool: calculate → Expected: hasil numerik
-Step 2: Simpan hasil → Tool: remember → Expected: confirmation
-Dependencies: Step 1 → Step 2
-Confidence: 95%
-
-[MODE: EXECUTOR]
-THOUGHT: Perlu hitung π*r² dengan r=7
-ACTION: calculate
-INPUT: 3.14159 * 7 * 7
-
-[MODE: EXECUTOR]
-THOUGHT: Dapat hasil 153.938, sekarang simpan
-ACTION: remember
-INPUT: luas_lingkaran=153.938
-
-[MODE: CRITIC]
-[REFLECT]
-✓ Strengths: Perhitungan benar, format benar
-✗ Weaknesses: π hanya 5 desimal, bisa lebih presisi
-? Questions: Apakah user butuh precision lebih tinggi?
-Confidence: 85%
-Decision: DELIVER (acceptable precision)
-
-[MODE: FINAL]
-FINAL ANSWER: Luas lingkaran dengan radius 7 adalah **153.938** (menggunakan π ≈ 3.14159). Hasil disimpan ke memori dengan key "luas_lingkaran".
-
-[[MEM: last_calculation=luas lingkaran r=7 → 153.938]]
-`;
-
-// NOTE: AGENT_SYS updated to GazccAgent Pro v2 with full PLANNER/EXECUTOR/CRITIC cycle
+## PERSONA:
+You are persistent, exercise judgment, and follow through. You don't stop at the first obstacle — you analyze, adapt, and deliver. You think like a senior engineer: structured, efficient, and insightful.`;
 
 
-// ---- AGENT MODE INDICATOR ----
-function showAgentMode(mode,progress){
-  var indicator=document.getElementById('agentModeIndicator');
-  var dot=document.getElementById('modeDot');
-  var label=document.getElementById('modeLabel');
-  var progressBar=document.getElementById('agentProgress');
-  var progressBarInner=document.getElementById('agentProgressBar');
-  if(mode==='idle'){
-    indicator.classList.remove('show');
-    progressBar.style.display='none';
-    return;
-  }
-  indicator.classList.add('show');
-  progressBar.style.display='block';
-  dot.className='mode-dot '+mode;
-  label.className='mode-label '+mode;
-  var labels={
-    planner:'🧠 PLANNER',
-    executor:'⚡ EXECUTOR',
-    critic:'🔍 CRITIC',
-    thinking:'💭 THINKING'
-  };
-  label.textContent=labels[mode]||mode.toUpperCase();
-  if(progress!==undefined){
-    progressBarInner.style.width=Math.min(100,Math.max(0,progress))+'%';
-  }
-}
+// ---- AGENT RUNNER (Vercel API) ----
+var AGENT_BASE='https://gazcc-agent-gg.vercel.app';
 
-function updateAgentProgress(step,total){
-  var pct=(step/total)*100;
-  document.getElementById('agentProgressBar').style.width=pct+'%';
-}
-
-function hideAgentMode(){
-  showAgentMode('idle');
-}
-
-// ---- AGENT RUNNER ----
 async function runAgent(userMsg,files){
-  var model=document.getElementById('msel').value;
+  // --- Build bubble ---
   var wrap=document.createElement('div');wrap.className='msg bot';wrap.style.maxWidth='98%';
   var lbl=document.createElement('div');lbl.className='lbl';lbl.textContent=BOT+' [AGENT]';
   var bub=document.createElement('div');bub.className='bubble';bub.style.borderLeft='2px solid var(--pink)';
   wrap.appendChild(lbl);wrap.appendChild(bub);chat.appendChild(wrap);chat.scrollTop=chat.scrollHeight;
-  showAgentMode('thinking',10);
 
-  var typDiv=document.createElement('div');typDiv.className='td';typDiv.innerHTML='<span></span><span></span><span></span>';
-  bub.appendChild(typDiv);
+  // Status bar
+  var statusDiv=document.createElement('div');
+  statusDiv.style.cssText='font-size:11px;font-family:"JetBrains Mono",monospace;padding:6px 0;display:flex;align-items:center;gap:6px;';
+  bub.appendChild(statusDiv);
+  function setStatus(icon,text,color){statusDiv.innerHTML='<span style="color:'+(color||'var(--cyan)')+'">'+icon+'</span><span style="color:var(--muted)">'+escH(text)+'</span>';}
+  function setPulse(text,color){statusDiv.innerHTML='<span class="td" style="display:inline-flex;gap:3px;margin-right:4px"><span style="width:4px;height:4px;border-radius:50%;background:'+(color||'var(--cyan)')+'"></span><span style="width:4px;height:4px;border-radius:50%;background:'+(color||'var(--cyan)')+'"></span><span style="width:4px;height:4px;border-radius:50%;background:'+(color||'var(--cyan)')+'"></span></span><span style="color:var(--muted)">'+escH(text)+'</span>';}
 
-  var initContent=[];
-  if(files&&files.length){files.forEach(function(f){if(f.isImg){initContent.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}else{try{initContent.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){initContent.push({type:'text',text:'[File: '+f.name+' — binary]'});}}});}
-  if(userMsg)initContent.push({type:'text',text:userMsg});
+  setPulse('Submitting task to Gazcc Agent...','var(--cyan)');
 
-  var agentSysWithMem=AGENT_SYS+buildMemoryPrompt();
-  // Sertakan riwayat percakapan ke agent agar konteks terjaga
-  var messages=[{role:'system',content:agentSysWithMem}];
-  // Inject hist terakhir (max 10 pesan) sebagai konteks
-  var histCtx=hist.slice(-10).filter(function(h){return h.role!=='system';});
-  histCtx.forEach(function(h){messages.push(h);});
-  // Tambah pesan user baru
-  var userContent=initContent.length===0?userMsg:(initContent.length===1&&initContent[0].type==='text'?userMsg:initContent);
-  messages.push({role:'user',content:userContent});
-  var MAX_ITER=8;var steps=[];var finalAnswer='';var noActionCount=0;
+  // --- POST /api/task ---
+  var taskId;
+  try{
+    var payload={task:userMsg||'[file task]',input:userMsg||''};
+    if(files&&files.length){payload.files=files.map(function(f){return{name:f.name,mime:f.mime,data:f.data,isImg:!!f.isImg};});}
+    // Inject recent history context
+    var ctxHist=hist.slice(-6).filter(function(h){return h.role!=='system';}).map(function(h){return{role:h.role,content:typeof h.content==='string'?h.content:(Array.isArray(h.content)?h.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join(' '):'')};});
+    if(ctxHist.length)payload.history=ctxHist;
 
-  for(var iter=0;iter<MAX_ITER;iter++){
-    var res,d;
-    try{
-      // Detect mode dari response sebelumnya
-      var lastReply=messages[messages.length-1]?.content||'';
-      if(lastReply.includes('[MODE: PLANNER]')) showAgentMode('planner', 20 + (iter*8));
-      else if(lastReply.includes('[MODE: EXECUTOR]')) showAgentMode('executor', 40 + (iter*6));
-      else if(lastReply.includes('[MODE: CRITIC]')) showAgentMode('critic', 70 + (iter*3));
-      else showAgentMode('thinking', 10 + (iter*5));
-      updateAgentProgress(iter, MAX_ITER);
-      var aParts=[];var aSys=messages.find(function(m){return m.role==='system';});
-      if(aSys)aParts.push('[SYSTEM]:\n'+aSys.content);
-      messages.filter(function(m){return m.role!=='system';}).forEach(function(m){
-        var c=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'');
-        aParts.push('['+m.role.toUpperCase()+']:\n'+c);
-      });
-      var aPrompt=aParts.join('\n\n');
-      var aUrl='/api/proxy?question='+encodeURIComponent(aPrompt)+'&system='+encodeURIComponent(SYS_PROMPT||'You are a helpful AI assistant.')+'&key='+encodeURIComponent(API_KEY);
-      res=await fetch(aUrl,{method:'GET'});
-      d=await res.json();
-      if(d&&d.data&&d.data.result){d={choices:[{message:{content:d.data.result}}]};}
-    }catch(e){typDiv.remove();bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Agent error: '+e.message+'</div>';return;}
-
-    if(!d.choices||!d.choices[0]){typDiv.remove();bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d.error?d.error.message:JSON.stringify(d))+'</div>';return;}
-
-    var llmReply=d.choices[0].message.content||'';
-    messages.push({role:'assistant',content:llmReply});
-    var faMatch=llmReply.match(/FINAL ANSWER:\s*([\s\S]+)$/i);
-    if(faMatch){finalAnswer=faMatch[1].trim();break;}
-    var thoughtMatch=llmReply.match(/THOUGHT:\s*([\s\S]*?)(?=ACTION:|FINAL ANSWER:|$)/i);
-    var actionMatch=llmReply.match(/ACTION:\s*(\w+)/i);
-    var inputMatch=llmReply.match(/INPUT:\s*([\s\S]*?)(?=THOUGHT:|ACTION:|FINAL ANSWER:|$)/i);
-    if(!actionMatch){
-      noActionCount++;
-      if(noActionCount<=3){
-        // Paksa lebih keras untuk pakai tool atau berikan final answer
-        var enforcement='PERINGATAN: Kamu harus menggunakan format YANG BENAR:\n'+
-          'THOUGHT: [pikiran kamu]\nACTION: [nama_tool]\nINPUT: [input]\n\n'+
-          'ATAU jika sudah selesai: FINAL ANSWER: [jawaban]\n\n'+
-          'Tools tersedia: '+Object.keys(AGENT_TOOLS).join(', ')+'\n'+
-          'JANGAN tulis respons bebas tanpa format ini.';
-        messages.push({role:'user',content:enforcement});
-        continue;
-      }
-      // Jika tetap gak mau pakai format, ambil sebagai final answer
-      finalAnswer=llmReply.replace(/^THOUGHT:.*$/gmi,'').trim()||llmReply;break;
-    }
-    var thought=thoughtMatch?thoughtMatch[1].trim():'';
-    var toolName=(actionMatch[1]||'').toLowerCase().trim();
-    var toolInput=inputMatch?inputMatch[1].trim():'';
-    var tool=AGENT_TOOLS[toolName];
-    var observation=tool?await Promise.resolve(tool.run(toolInput)):'Error: tool "'+toolName+'" tidak dikenal. Tools valid: '+Object.keys(AGENT_TOOLS).join(', ');
-    steps.push({iter:iter+1,thought:thought,toolName:toolName,toolInput:toolInput,observation:observation});
-    messages.push({role:'user',content:'OBSERVATION: '+observation+'\n\nLanjutkan dengan THOUGHT berikutnya atau FINAL ANSWER jika sudah selesai.'});
+    var res=await fetch(AGENT_BASE+'/api/task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var data=await res.json();
+    taskId=data.id||data.taskId||data.task_id||data.data&&data.data.id;
+    if(!taskId)throw new Error(data.error||data.message||'No task ID in response');
+  }catch(e){
+    bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Submit gagal: '+escH(e.message)+'</div>';
+    return;
   }
 
-  if(!finalAnswer&&steps.length===0)finalAnswer='Agent tidak menghasilkan jawaban.';
-  if(!finalAnswer)finalAnswer='[Agent mencapai batas iterasi]';
+  // Task ID chip
+  var idChip=document.createElement('div');
+  idChip.style.cssText='font-size:9px;font-family:"JetBrains Mono",monospace;color:var(--muted);margin-bottom:8px;';
+  idChip.innerHTML='TASK <span style="color:var(--purple)">'+escH(taskId)+'</span>';
+  bub.appendChild(idChip);
 
-  typDiv.remove();bub.innerHTML='';
+  var stepsContainer=document.createElement('div');
+  stepsContainer.style.cssText='display:flex;flex-direction:column;gap:6px;margin-top:4px;';
+  bub.appendChild(stepsContainer);
 
-  steps.forEach(function(s){
-    var sd=document.createElement('div');sd.className='agent-step';
-    var uid='as_'+Date.now()+'_'+s.iter;
-    var toolLabel=s.toolName?('<span class="step-tool">'+s.toolName.toUpperCase()+'</span>'):'';
-    sd.innerHTML=
-      '<div class="agent-step-hdr" onclick="toggleStep(\''+uid+'\')">'+
-        '<div class="step-num">'+s.iter+'</div>'+toolLabel+
-        '<span class="step-label">'+escH(s.thought.slice(0,50))+(s.thought.length>50?'...':'')+'</span>'+
-        '<span class="step-arrow" id="arr_'+uid+'">▶</span>'+
-      '</div>'+
-      '<div class="step-body" id="'+uid+'">'+
-        (s.thought?'<div class="step-thought">'+escH(s.thought)+'</div>':'')+
-        '<div class="step-action-box">→ '+escH(s.toolName)+'( '+escH(s.toolInput)+' )</div>'+
-        '<div class="step-obs">⟵ '+escH(s.observation)+'</div>'+
-      '</div>';
-    bub.appendChild(sd);
-  });
+  var finalResult='';
+  var sseOk=false;
+  var renderedStepIds=new Set();
 
-  if(finalAnswer){
+  // Helper: render steps array
+  function renderSteps(stepsArr){
+    if(!stepsArr||!stepsArr.length)return;
+    stepsArr.forEach(function(s,i){
+      var sid=s.id||(s.tool+'_'+i);
+      if(renderedStepIds.has(sid))return;
+      renderedStepIds.add(sid);
+      var sd=document.createElement('div');sd.className='agent-step';
+      var uid='as_'+Date.now()+'_'+i;
+      var thought=s.thought||s.message||s.description||'';
+      var toolName=s.tool||s.action||s.type||'';
+      var toolInput=s.input||s.query||'';
+      var obs=s.observation||s.result||s.output||'';
+      sd.innerHTML=
+        '<div class="agent-step-hdr" onclick="toggleStep(\''+uid+'\')">'+
+          '<div class="step-num">'+(i+1)+'</div>'+
+          (toolName?'<span class="step-tool">'+escH(toolName.toUpperCase())+'</span>':'')+
+          '<span class="step-label">'+escH(thought.slice(0,55))+(thought.length>55?'...':'')+'</span>'+
+          '<span class="step-arrow" id="arr_'+uid+'">▶</span>'+
+        '</div>'+
+        '<div class="step-body" id="'+uid+'">'+
+          (thought?'<div class="step-thought">'+escH(thought)+'</div>':'')+
+          (toolName?'<div class="step-action-box">→ '+escH(toolName)+'( '+escH(toolInput)+' )</div>':'')+
+          (obs?'<div class="step-obs">⟵ '+escH(String(obs).slice(0,600))+(String(obs).length>600?'...[terpotong]':'')+'</div>':'')+
+        '</div>';
+      stepsContainer.appendChild(sd);
+      chat.scrollTop=chat.scrollHeight;
+    });
+  }
+
+  // --- Try SSE: POST /api/run ---
+  try{
+    await new Promise(function(resolve,reject){
+      var sseTimeout=setTimeout(function(){reject(new Error('SSE timeout'));},90000);
+
+      fetch(AGENT_BASE+'/api/run',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:taskId,task_id:taskId,taskId:taskId})
+      }).then(function(resp){
+        if(!resp.ok||!resp.body){reject(new Error('SSE resp '+resp.status));return;}
+        sseOk=true;
+        var reader=resp.body.getReader();
+        var decoder=new TextDecoder();
+        var buf='';
+        var stepBuf=[];
+
+        function processEvent(evtData){
+          if(!evtData||evtData==='[DONE]'){clearTimeout(sseTimeout);resolve();return;}
+          var evt;
+          try{evt=JSON.parse(evtData);}catch(e){
+            // Raw text event
+            if(evtData)setPulse(evtData,'var(--yellow)');
+            return;
+          }
+          var type=evt.type||evt.event||'';
+          var s=evt.status||'';
+
+          if(type==='status'||s==='pending'||s==='running'){
+            var msg=evt.message||evt.msg||(s==='pending'?'Task pending...':'Agent sedang berjalan...');
+            setPulse(msg,s==='pending'?'var(--muted)':'var(--yellow)');
+          } else if(type==='step'||type==='thought'||type==='action'||type==='tool_call'||type==='tool_result'){
+            stepBuf.push(evt);
+            renderSteps(stepBuf);
+            var progMsg=evt.thought||evt.tool||evt.message||'Processing...';
+            setStatus('⚡',progMsg,'var(--yellow)');
+          } else if(type==='steps'&&Array.isArray(evt.steps)){
+            stepBuf=evt.steps;renderSteps(stepBuf);
+          } else if(type==='done'||type==='complete'||type==='result'||s==='done'||s==='completed'||s==='complete'){
+            finalResult=evt.result||evt.output||evt.answer||evt.message||'';
+            if(Array.isArray(evt.steps))renderSteps(evt.steps);
+            setStatus('✅','Task selesai!','var(--green)');
+            clearTimeout(sseTimeout);resolve();
+          } else if(type==='error'||s==='error'||s==='failed'){
+            finalResult='⚠️ Agent error: '+(evt.error||evt.message||'Unknown error');
+            setStatus('❌','Task gagal','#ff5555');
+            clearTimeout(sseTimeout);resolve();
+          } else if(evt.result||evt.output||evt.answer){
+            finalResult=evt.result||evt.output||evt.answer;
+            if(Array.isArray(evt.steps))renderSteps(evt.steps);
+            setStatus('✅','Done','var(--green)');
+            clearTimeout(sseTimeout);resolve();
+          } else if(evt.message||evt.text){
+            setPulse(evt.message||evt.text,'var(--yellow)');
+          }
+        }
+
+        function read(){
+          reader.read().then(function(chunk){
+            if(chunk.done){clearTimeout(sseTimeout);resolve();return;}
+            buf+=decoder.decode(chunk.value,{stream:true});
+            var lines=buf.split('\n');
+            buf=lines.pop();
+            var evtData='';
+            lines.forEach(function(line){
+              line=line.trim();
+              if(!line){if(evtData){processEvent(evtData);evtData='';}return;}
+              if(line.startsWith('data:')){evtData=(evtData?evtData+'\n':'')+line.slice(5).trim();}
+              else if(line.startsWith('event:')||line.startsWith(':')){/* ignore */}
+              else if(evtData){evtData+='\n'+line;}
+            });
+            read();
+          }).catch(function(e){clearTimeout(sseTimeout);reject(e);});
+        }
+        read();
+      }).catch(reject);
+    });
+  }catch(e){
+    sseOk=false;
+    setPulse('SSE unavailable, polling...','var(--muted)');
+  }
+
+  // --- Polling fallback: GET /api/task/{id} ---
+  if(!sseOk||!finalResult){
+    var maxPolls=60;
+    for(var p=0;p<maxPolls;p++){
+      await new Promise(function(r){setTimeout(r,1500);});
+      try{
+        var pr=await fetch(AGENT_BASE+'/api/task/'+taskId);
+        var pd=await pr.json();
+        var ps=pd.status||'';
+
+        if(ps==='pending'){
+          setStatus('⏳','Pending... ('+(p*1.5).toFixed(0)+'s)','var(--muted)');
+        } else if(ps==='running'||ps==='processing'){
+          setPulse('Agent berjalan... ('+(p*1.5).toFixed(0)+'s)','var(--yellow)');
+          if(pd.steps&&pd.steps.length)renderSteps(pd.steps);
+        } else if(ps==='done'||ps==='completed'||ps==='complete'||pd.result||pd.output){
+          finalResult=pd.result||pd.output||pd.answer||pd.message||'[Task selesai]';
+          if(pd.steps&&pd.steps.length)renderSteps(pd.steps);
+          setStatus('✅','Task selesai!','var(--green)');
+          break;
+        } else if(ps==='error'||ps==='failed'){
+          finalResult='⚠️ Agent error: '+(pd.error||pd.message||'Unknown error');
+          setStatus('❌','Task gagal','#ff5555');
+          break;
+        }
+      }catch(e){setStatus('⚠️','Poll error: '+e.message,'#ff5555');}
+    }
+    if(!finalResult)finalResult='[Timeout: Agent tidak merespons dalam 90 detik. Cek task ID: '+taskId+']';
+  }
+
+  // --- Render final result ---
+  if(finalResult){
     var fa=document.createElement('div');
-    fa.innerHTML='<div class="agent-info-hdr">⚡ FINAL ANSWER</div>';
+    fa.innerHTML='<div class="agent-info-hdr">⚡ HASIL AGENT</div>';
     var agFinal=document.createElement('div');agFinal.className='agent-final';
     fa.appendChild(agFinal);bub.appendChild(fa);
 
-    var fileKeys=Object.keys(agentFiles);
-    if(fileKeys.length){
-      var fpanel=document.createElement('div');fpanel.className='files-panel';
-      fpanel.innerHTML='<div class="files-panel-hdr">📁 FILES — klik untuk download</div>';
-      fileKeys.forEach(function(k){
-        var f=agentFiles[k];var chip=document.createElement('a');chip.className='file-dl-chip';chip.href='#';
-        var ext=k.split('.').pop().toLowerCase();
-        var icon=ext==='lua'?'🌙':ext==='js'||ext==='ts'?'📜':ext==='py'?'🐍':ext==='html'?'🌐':ext==='json'?'{}':ext==='txt'?'📝':'📄';
-        chip.innerHTML=icon+' <strong>'+escH(k)+'</strong> <span style="color:var(--muted);font-size:10px">'+f.content.length+' chars</span>';
-        chip.onclick=function(e){e.preventDefault();downloadAgentFile(k);};fpanel.appendChild(chip);
-      });
-      bub.appendChild(fpanel);
-    }
+    var agParsed=parseAiMemoryTags(finalResult);
+    finalResult=agParsed.cleaned;
+    updateLastCode(finalResult);
 
-    // Parse memory dari final answer agent juga
-    var agParsed=parseAiMemoryTags(finalAnswer);
-    finalAnswer=agParsed.cleaned;
-    updateLastCode(finalAnswer);
-
-    var ci=0;var fa_str=finalAnswer;
+    var ci=0;var fa_str=finalResult;
     function typeNext(){
       if(ci>=fa_str.length){agFinal.innerHTML=formatText(fa_str);addCopyBtn(bub,fa_str);chat.scrollTop=chat.scrollHeight;return;}
       ci=Math.min(ci+5,fa_str.length);
@@ -1645,10 +1569,9 @@ async function runAgent(userMsg,files){
     typeNext();
   }
 
-  hist.push({role:'user',content:userMsg||(files&&files.length?'[image/file]':'')});
-  hist.push({role:'assistant',content:finalAnswer||'[agent done]'});
+  hist.push({role:'user',content:userMsg||(files&&files.length?'[file]':'')});
+  hist.push({role:'assistant',content:finalResult||'[agent done]'});
   if(hist.length>60)hist=hist.slice(-60);
-  hideAgentMode();
   badge();
 }
 
