@@ -1439,7 +1439,7 @@ async function runAgent(userMsg,files){
   // --- Try SSE: POST /api/run ---
   try{
     await new Promise(function(resolve,reject){
-      var sseTimeout=setTimeout(function(){reject(new Error('SSE timeout'));},90000);
+      var sseTimeout=setTimeout(function(){reject(new Error('SSE timeout'));},600000); // 10 menit
 
       fetch(AGENT_BASE+'/api/run',{
         method:'POST',
@@ -1520,32 +1520,44 @@ async function runAgent(userMsg,files){
 
   // --- Polling fallback: GET /api/task/{id} ---
   if(!sseOk||!finalResult){
-    var maxPolls=60;
+    // Polling setiap 5 detik, max 120x = 10 menit
+    var maxPolls=120;
+    var pollInterval=5000;
+    var pollConsecErrors=0;
     for(var p=0;p<maxPolls;p++){
-      await new Promise(function(r){setTimeout(r,1500);});
+      await new Promise(function(r){setTimeout(r,pollInterval);});
       try{
-        var pr=await fetch(AGENT_BASE+'/api/task/'+taskId);
+        var pr=await fetch(AGENT_BASE+'/api/task/'+taskId,{signal:AbortSignal.timeout(10000)});
+        if(!pr.ok)throw new Error('HTTP '+pr.status);
         var pd=await pr.json();
         var ps=pd.status||'';
+        pollConsecErrors=0;
+
+        var elapsed=Math.round((p+1)*pollInterval/1000);
+        var elapsedStr=elapsed>=60?(Math.floor(elapsed/60)+'m '+(elapsed%60)+'s'):(elapsed+'s');
 
         if(ps==='pending'){
-          setStatus('⏳','Pending... ('+(p*1.5).toFixed(0)+'s)','var(--muted)');
+          setStatus('⏳','Menunggu antrian... ('+elapsedStr+')','var(--muted)');
         } else if(ps==='running'||ps==='processing'){
-          setPulse('Agent berjalan... ('+(p*1.5).toFixed(0)+'s)','var(--yellow)');
+          setPulse('Agent berjalan... ('+elapsedStr+')','var(--yellow)');
           if(pd.steps&&pd.steps.length)renderSteps(pd.steps);
         } else if(ps==='done'||ps==='completed'||ps==='complete'||pd.result||pd.output){
           finalResult=pd.result||pd.output||pd.answer||pd.message||'[Task selesai]';
           if(pd.steps&&pd.steps.length)renderSteps(pd.steps);
-          setStatus('✅','Task selesai!','var(--green)');
+          setStatus('✅','Task selesai! ('+elapsedStr+')','var(--green)');
           break;
         } else if(ps==='error'||ps==='failed'){
           finalResult='⚠️ Agent error: '+(pd.error||pd.message||'Unknown error');
           setStatus('❌','Task gagal','#ff5555');
           break;
         }
-      }catch(e){setStatus('⚠️','Poll error: '+e.message,'#ff5555');}
+      }catch(e){
+        pollConsecErrors++;
+        setStatus('⚠️','Poll error ('+pollConsecErrors+'x): '+e.message,'#ff5555');
+        if(pollConsecErrors>=5)pollInterval=10000;
+      }
     }
-    if(!finalResult)finalResult='[Timeout: Agent tidak merespons dalam 90 detik. Cek task ID: '+taskId+']';
+    if(!finalResult)finalResult='[Timeout: Agent berjalan >10 menit. Task ID: '+taskId+' — cek langsung di server]';
   }
 
   // --- Render final result ---
