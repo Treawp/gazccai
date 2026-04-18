@@ -1209,6 +1209,40 @@ function renderFileMarkers(text) {
            '</span></a>';
   });
 
+  // Option 3 (FALLBACK): Tangkap pola "Base64 Payload:" diikuti blok kode base64
+  // AI lama kadang output: [Download: filename](sandbox:/...) lalu Base64 Payload: ...
+  text = text.replace(/\[(?:📦\s*)?Download:\s*([^\]]+)\]\(sandbox:[^\)]*\)/g, function(match, fname) {
+    fname = fname.trim();
+    // Simpan fname untuk dipakai fallback detector bawah
+    return '<span data-pending-filename="' + fname + '" style="display:none"></span>';
+  });
+
+  // Tangkap "Base64 Payload:\n...\n<codeblock>BASE64</codeblock>"
+  text = text.replace(/<span data-pending-filename="([^"]+)"[^>]*><\/span>[\s\S]*?\*\*Base64 Payload:\*\*[\s\S]*?<code>([A-Za-z0-9+\/=\s]+)<\/code>/g,
+    function(match, fname, b64raw) {
+      var b64 = b64raw.replace(/\s/g,'');
+      try {
+        var byteChars = atob(b64);
+        var byteArr = new Uint8Array(byteChars.length);
+        for(var i=0;i<byteChars.length;i++) byteArr[i]=byteChars.charCodeAt(i);
+        var mime = fname.endsWith('.lua')?'text/x-lua':fname.endsWith('.py')?'text/x-python':
+                   fname.endsWith('.json')?'application/json':'text/plain';
+        var blob = new Blob([byteArr],{type:mime});
+        var url = URL.createObjectURL(blob);
+        var icon = getFileIcon(fname);
+        return '<a class="file-download-card" href="'+url+'" download="'+fname+'" target="_blank">'+
+               '<span class="file-download-icon">'+icon+'</span>'+
+               '<span class="file-download-info">'+
+               '<span class="file-download-name">'+fname+'</span>'+
+               '<span class="file-download-meta">⬇️ Klik untuk download</span>'+
+               '</span></a>';
+      } catch(e){ return match; }
+    }
+  );
+
+  // Bersihkan sisa span pending yang tidak ter-match
+  text = text.replace(/<span data-pending-filename="[^"]*"[^>]*><\/span>/g, '');
+
   return text;
 }
 
@@ -1658,7 +1692,15 @@ async function runAgent(userMsg,files){
 
   var AGENT_SYS='Kamu adalah GazccThinking — AI agent otonom yang cerdas, analitis, dan hasil-oriented. '+
     'Selesaikan task user secara menyeluruh: analisis, reasoning step-by-step, berikan solusi final yang konkret dan actionable. '+
-    'Format jawaban dengan jelas, gunakan markdown bila perlu. Jangan setengah-setengah.';
+    'Format jawaban dengan jelas, gunakan markdown bila perlu. Jangan setengah-setengah.\n\n'+
+    '=== ATURAN FILE DOWNLOAD (WAJIB) ===\n'+
+    'Jika kamu menghasilkan file yang perlu didownload user, JANGAN gunakan path sandbox (sandbox:/mnt/...) atau markdown link biasa.\n'+
+    'WAJIB gunakan format ini PERSIS (satu baris):\n'+
+    '[FILE_EXPORT:namafile.ext:BASE64CONTENT:mime/type]\n'+
+    'Contoh file teks result.txt berisi hello -> [FILE_EXPORT:result.txt:aGVsbG8=:text/plain]\n'+
+    'Encode isi file ke Base64 lalu letakkan di posisi BASE64CONTENT.\n'+
+    'MIME umum: text/plain, text/x-lua, text/x-python, application/json, text/html, application/zip\n'+
+    'Frontend akan render tag ini jadi tombol download real. JANGAN output sandbox path.';
 
   try{
     var promptParts=[];
