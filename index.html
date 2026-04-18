@@ -644,7 +644,7 @@ strong{color:var(--txt);font-weight:600}
   <div class="bar">
     <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">📎</button>
     <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.js,.py,.html,.css,.json,.md,.csv,.lua,.ts,.jsx,.tsx,.xml,.yaml,.yml" onchange="handleFiles(this.files)">
-    <input type="text" id="inp" placeholder="Ketik pesan... (Ctrl+V paste gambar)" autocomplete="off">
+    <textarea id="inp" placeholder="Ketik pesan... (Ctrl+V paste gambar)" autocomplete="off" rows="1" style="resize:none;overflow-y:hidden;min-height:40px;max-height:200px;line-height:1.5;padding-top:10px;padding-bottom:10px;"></textarea>
     <div class="bwrap">
       <button id="btn" onclick="send()">&#10148;</button>
       <div class="mbadge" id="mb">0</div>
@@ -745,7 +745,7 @@ function buildContextPrompt(){
     var recentMsgs=hist.slice(-6).filter(function(h){return h.role!=='system';});
     var topicHint=recentMsgs.map(function(h){
       var c=typeof h.content==='string'?h.content:(Array.isArray(h.content)?h.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join(' '):'');
-      return '['+h.role.toUpperCase()+'] '+(c||'').trim().slice(0,100);
+      return '['+h.role.toUpperCase()+'] '+(c||'').trim().slice(0,500);
     }).join(' | ');
     parts.push('\n[TOPIK AKTIF: '+topicHint.slice(0,500)+']');
   }
@@ -1068,7 +1068,14 @@ var btn=document.getElementById('btn');
 var mb=document.getElementById('mb');
 var attachBar=document.getElementById('attachBar');
 
-inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();send();}});
+inp.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}
+});
+// Auto-resize textarea sesuai isi
+inp.addEventListener('input',function(){
+  this.style.height='auto';
+  this.style.height=Math.min(this.scrollHeight,200)+'px';
+});
 
 // === MOBILE KEYBOARD FIX ===
 // Saat keyboard Android muncul, visualViewport mengecil → hitung ulang posisi bar
@@ -1825,7 +1832,7 @@ var GAZCC_AGENT='';
 
 async function _llmCall(messages,model,onContinue){
   // Auto-continuation: lanjut kalau finish_reason=='length' DAN belum ada FINAL ANSWER
-  var MAX_CONT=3,parts=[],curMessages=messages.slice();
+  var MAX_CONT=6,parts=[],curMessages=messages.slice();
   for(var round=0;round<MAX_CONT;round++){
     var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
@@ -1868,7 +1875,7 @@ async function runAgent(userMsg,files){
   try{
     var promptParts=[];
     if(hist&&hist.length){
-      hist.slice(-8).forEach(function(m){
+      hist.slice(-20).forEach(function(m){
         var c=typeof m.content==='string'?m.content:'[file]';
         promptParts.push('['+m.role.toUpperCase()+']:\n'+c);
       });
@@ -1967,6 +1974,21 @@ async function runAgent(userMsg,files){
           showAgentMode('critic',50);
           continue;
         }
+        // ── Auto get_download: kalau ada file di agentFiles yg belum di-export, generate otomatis ──
+        var exportedNames = pendingFileExports.map(function(m){
+          var nm = m.match(/\[FILE_EXPORT:([^:]+):/);
+          return nm ? nm[1] : '';
+        });
+        Object.keys(agentFiles).forEach(function(fname){
+          if(exportedNames.indexOf(fname) < 0 && agentFiles[fname] && agentFiles[fname].content){
+            agLog('🔧 Auto get_download: ' + fname);
+            var autoResult = AGENT_TOOLS.get_download.run(fname);
+            if(autoResult.indexOf('[FILE_EXPORT:') === 0){
+              pendingFileExports.push(autoResult);
+              agLog('📦 Auto-export OK: ' + fname);
+            }
+          }
+        });
         finalAnswer=tentativeFinal;agLog('✅ Final Answer diterima');break;
       }
 
