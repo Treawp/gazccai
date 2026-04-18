@@ -301,6 +301,15 @@ strong{color:var(--txt);font-weight:600}
 #btn:disabled{opacity:.35;box-shadow:none}
 .mbadge{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#1a2540;color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;transition:background .3s}
 
+
+/* === FILE DOWNLOAD CARD === */
+.file-download-card{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(123,47,255,0.15),rgba(0,212,255,0.1));border:1px solid rgba(0,212,255,0.3);border-radius:12px;padding:10px 16px;margin:8px 0;cursor:pointer;transition:all .2s;text-decoration:none;max-width:100%;}
+.file-download-card:hover{background:linear-gradient(135deg,rgba(123,47,255,0.3),rgba(0,212,255,0.2));border-color:rgba(0,212,255,0.6);transform:translateY(-1px);}
+.file-download-icon{font-size:22px;flex-shrink:0;}
+.file-download-info{display:flex;flex-direction:column;min-width:0;}
+.file-download-name{font-weight:700;font-size:13px;color:#e0e8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-download-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+
 /* === AGENT MODE === */
 .agent-toggle{transition:all .2s}
 .agent-toggle.active{background:linear-gradient(135deg,var(--pink),var(--purple)) !important;border-color:var(--pink) !important;color:#fff !important;box-shadow:0 0 16px rgba(247,37,133,0.4)}
@@ -1145,9 +1154,67 @@ function renderAttachBar(){
 }
 
 // ---- MARKDOWN ----
+
+// ── File Export Marker Renderer ───────────────────────────────────────────────
+// Deteksi [FILE_EXPORT:name:base64:mime] dan [FILE_LINK:name:url]
+// Ubah jadi tombol download yang bisa diklik user
+
+function getFileIcon(filename) {
+  var ext = filename.split('.').pop().toLowerCase();
+  var icons = {
+    pdf:'📄', py:'🐍', js:'📜', ts:'📜', html:'🌐', css:'🎨',
+    json:'📋', csv:'📊', xlsx:'📊', txt:'📝', md:'📝',
+    zip:'🗜️', tar:'🗜️', gz:'🗜️', png:'🖼️', jpg:'🖼️',
+    jpeg:'🖼️', gif:'🖼️', mp3:'🎵', mp4:'🎬', doc:'📄', docx:'📄',
+  };
+  return icons[ext] || '📁';
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+function renderFileMarkers(text) {
+  // Option 1: [FILE_EXPORT:filename:base64data:mimetype]
+  text = text.replace(/\[FILE_EXPORT:([^:]+):([A-Za-z0-9+/=]+):([^\]]+)\]/g, function(match, filename, b64, mime) {
+    try {
+      var byteChars = atob(b64);
+      var byteArr = new Uint8Array(byteChars.length);
+      for (var i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+      var blob = new Blob([byteArr], {type: mime});
+      var url = URL.createObjectURL(blob);
+      var icon = getFileIcon(filename);
+      return '<a class="file-download-card" href="' + url + '" download="' + filename + '" target="_blank">' +
+             '<span class="file-download-icon">' + icon + '</span>' +
+             '<span class="file-download-info">' +
+             '<span class="file-download-name">' + filename + '</span>' +
+             '<span class="file-download-meta">⬇️ Klik untuk download &bull; Base64</span>' +
+             '</span></a>';
+    } catch(e) {
+      return '<span style="color:#ff5555">⚠️ Gagal render file: ' + e.message + '</span>';
+    }
+  });
+
+  // Option 2: [FILE_LINK:filename:url]
+  text = text.replace(/\[FILE_LINK:([^:]+):([^\]]+)\]/g, function(match, filename, url) {
+    var icon = getFileIcon(filename);
+    return '<a class="file-download-card" href="' + url + '" download="' + filename + '" target="_blank">' +
+           '<span class="file-download-icon">' + icon + '</span>' +
+           '<span class="file-download-info">' +
+           '<span class="file-download-name">' + filename + '</span>' +
+           '<span class="file-download-meta">⬇️ Klik untuk download &bull; Link</span>' +
+           '</span></a>';
+  });
+
+  return text;
+}
+
 function formatText(text){
   var parts=text.split(/(```[\s\S]*?```)/g);
-  return parts.map(function(p,i){
+  return renderFileMarkers(parts.map(function(p,i){
     if(i%2===1){
       return p.replace(/```(\w*)\n?([\s\S]*?)```/g,function(m,lang,code){
         return '<div class="code-wrap">'+
@@ -1170,7 +1237,7 @@ function formatText(text){
       .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g,'<em style="color:var(--muted)">$1</em>')
       .replace(/\n/g,'<br>');
-  }).join('');
+  }).join(''));
 }
 
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
