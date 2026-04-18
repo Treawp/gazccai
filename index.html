@@ -555,10 +555,10 @@ strong{color:var(--txt);font-weight:600}
   <div class="setup-box">
     <div class="setup-logo">🤖</div>
     <h2>GazccAI Setup</h2>
-    <p>Pakai Covenant API — masukkan API key kamu dari app.covenant.sbs/docs</p>
+    <p>Pakai OpenRouter — masukkan API key kamu dari openrouter.ai/keys</p>
     <div>
-      <div class="field-label">COVENANT API KEY</div>
-      <input type="password" id="apiKey" placeholder="covenant-api-key-...">
+      <div class="field-label">OPENROUTER API KEY</div>
+      <input type="password" id="apiKey" placeholder="sk-or-...">
     </div>
     <div>
       <div class="field-label">NAMA BOT</div>
@@ -568,9 +568,9 @@ strong{color:var(--txt);font-weight:600}
       <div class="field-label">SYSTEM PROMPT</div>
       <textarea id="sysPrompt" rows="3" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant. Answer in the same language as the user.</textarea>
     </div>
-    <div id="errMsg" class="err">API key Covenant tidak boleh kosong!</div>
+    <div id="errMsg" class="err">API key OpenRouter tidak boleh kosong!</div>
     <button id="startBtn" onclick="startApp()">MULAI CHAT ➤</button>
-    <a class="guide" href="https://app.covenant.sbs/docs" target="_blank">📖 Lihat dokumentasi Covenant API di app.covenant.sbs/docs</a>
+    <a class="guide" href="https://openrouter.ai/keys" target="_blank">📖 Dapatkan API key di openrouter.ai/keys</a>
   </div>
 </div>
 
@@ -581,8 +581,10 @@ strong{color:var(--txt);font-weight:600}
     <div class="bot-title" id="headerTitle">GazccAI</div>
     <div class="mwrap">
       <select id="msel">
-        <optgroup label="── Covenant Blackbox ──">
-          <option value="blackbox">Blackbox AI 🔥</option>
+        <optgroup label="── OpenRouter Models ──">
+          <option value="google/gemma-4-26b-a4b-it">Gemma 4 26B</option>
+          <option value="minimax/minimax-m2.5:free">MiniMax M2.5 (Free)</option>
+          <option value="nvidia/nemotron-3-super-120b-a12b:free">Nemotron 120B (Free)</option>
           <option value="deepseek">deepseek v2</option>
           <option value="spotify/download">spotify download</option>
           <option value="gpt-4o-mini">GPT-4o Mini ⚡</option>
@@ -615,7 +617,7 @@ strong{color:var(--txt);font-weight:600}
     <div class="welcome" id="wlc">
       <div class="welcome-icon">🤖</div>
       <h2 id="wlcTitle">GazccAI</h2>
-      <div class="tag">POWERED BY COVENANT API</div>
+      <div class="tag">POWERED BY OPENROUTER</div>
       <p>Pilih model — ketik, kirim gambar, upload file, atau minta AI simpan info ke memori</p>
       <div class="caps">
         <span class="cap">🖼 Gambar + Agent</span>
@@ -941,7 +943,7 @@ function _buildChatUI(){
     '<div class="welcome" id="wlc">'+
     '<div class="welcome-icon">🤖</div>'+
     '<h2>'+BOT+'</h2>'+
-    '<div class="tag">POWERED BY COVENANT API</div>'+
+    '<div class="tag">POWERED BY OPENROUTER</div>'+
     '<p>Pilih model — ketik, kirim gambar, atau upload file</p>'+
     '<div class="caps"><span class="cap">🖼 Gambar + Agent</span><span class="cap">📄 PDF/File</span><span class="cap">🧠 AI Memory</span><span class="cap">💡 Auto Context</span><span class="cap">🔴 Streaming</span><span class="cap">💬 Multi-Chat</span></div></div>';
   var ab=document.getElementById('attachBar');ab.innerHTML='';ab.style.display='none';
@@ -1253,7 +1255,7 @@ async function sendStream(messages,model){
     try{
       res=await fetch(cvUrl,{method:'GET'});
       d=await res.json();
-    }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Covenant API error: '+e.message+'</div>';return null;}
+    }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ OpenRouter error: '+e.message+'</div>';return null;}
     if(!d||!d.status){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d&&d.message?d.message:JSON.stringify(d))+'</div>';return null;}
     replyText=(d.data&&d.data.result)?d.data.result:'';
     if(!replyDiv){replyDiv=document.createElement('div');replyDiv.appendChild(cursor);bub.appendChild(replyDiv);}
