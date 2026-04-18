@@ -1500,7 +1500,9 @@ var AGENT_TOOLS={
   append_file:{desc:'Tambah ke file. Input: namafile|||konten',run:function(input){var idx=input.indexOf('|||');if(idx<0)return 'Error: format namafile|||konten';var name=input.slice(0,idx).trim(),content=input.slice(idx+3);if(!agentFiles[name])return 'Error: file tidak ditemukan';agentFiles[name].content+=content;saveAgentFiles();return 'Ditambahkan ke "'+name+'". Total: '+agentFiles[name].content.length+' chars';}},
   list_files:{desc:'Lihat semua file',run:function(){var keys=Object.keys(agentFiles);if(!keys.length)return 'Belum ada file.';return keys.map(function(k){return '📄 '+k+' — '+agentFiles[k].content.length+' chars';}).join('\n');}},
   delete_file:{desc:'Hapus file. Input: namafile',run:function(input){var name=input.trim();if(!agentFiles[name])return 'Error: file tidak ditemukan';delete agentFiles[name];saveAgentFiles();return 'File "'+name+'" dihapus';}},
-  save_ai_memory:{desc:'Simpan ke AI Memory. Input: key=value',run:function(input){var idx=input.indexOf('=');if(idx<0)return 'Error: format key=value';var k=input.slice(0,idx).trim(),v=input.slice(idx+1).trim();aiMemory[k]=v;saveAiMemory();updateMemBadge();return 'AI Memory: '+k+' = '+v;}}
+  save_ai_memory:{desc:'Simpan ke AI Memory. Input: key=value',run:function(input){var idx=input.indexOf('=');if(idx<0)return 'Error: format key=value';var k=input.slice(0,idx).trim(),v=input.slice(idx+1).trim();aiMemory[k]=v;saveAiMemory();updateMemBadge();return 'AI Memory: '+k+' = '+v;}},
+  write_file:{desc:'Alias create_file. Input: nama.ext|||konten',run:function(input){var idx=input.indexOf('|||');if(idx<0)return 'Error: format nama.ext|||konten';var name=input.slice(0,idx).trim(),content=input.slice(idx+3);agentFiles[name]={name:name,content:content,created:new Date().toISOString()};saveAgentFiles();return 'File "'+name+'" ditulis ('+content.length+' chars)';}},
+  get_download:{desc:'Generate tombol download untuk file yg sudah dibuat. Input: namafile',run:function(input){var name=input.trim();if(!agentFiles[name])return 'Error: file "'+name+'" tidak ditemukan. Buat dulu pakai create_file.';var content=agentFiles[name].content;var ext=name.split('.').pop().toLowerCase();var mime=ext==='lua'||ext==='lu'?'text/x-lua':ext==='py'?'text/x-python':ext==='js'?'application/javascript':ext==='json'?'application/json':ext==='html'?'text/html':ext==='zip'?'application/zip':'text/plain';try{var b64=btoa(unescape(encodeURIComponent(content)));return '[FILE_EXPORT:'+name+':'+b64+':'+mime+']';}catch(e){return 'Error encode base64: '+e.message;}}}
 };
 
 var AGENT_SYS=`Kamu adalah GazccAgent Pro — AI agent autonomous dengan 3 persona internal:
@@ -1570,6 +1572,11 @@ ATURAN KETAT
 3. Confidence < 80% = wajib REFINE/ulang
 4. Code WAJIB divalidasi sebelum deliver
 5. "Fix", "tambah", "ubah" = merujuk context sebelumnya
+6. DILARANG menjelaskan cara kerja FILE_EXPORT ke user — EKSEKUSI langsung pakai tools
+7. Task buat/tulis file: WAJIB ACTION: create_file lalu ACTION: get_download. Tidak boleh skip.
+8. JANGAN generate [FILE_EXPORT:...] secara manual — pakai get_download agar base64 pasti benar
+9. Jangan instruksikan user melakukan sesuatu yang bisa kamu kerjakan sendiri dengan tools
+10. Output dari get_download sudah berupa marker final — copy persis ke FINAL ANSWER
 
 ═══════════════════════════════════════════════════════════
 TOOLS TERSEDIA
@@ -1590,11 +1597,13 @@ format_json    - Pretty JSON
 regex_test     - Test regex (pattern|||string)
 word_count     - Count words/chars
 create_file    - Create file (name|||content)
+write_file     - Write/overwrite file (name|||content)
 read_file      - Read file
 edit_file      - Edit file (name|||old|||new)
 append_file    - Append to file
 list_files     - List files
 delete_file    - Delete file
+get_download   - Generate download button (namafile) — WAJIB setelah create/write file agar user bisa download
 shell_exec     - Execute shell command
 timer_set      - Set timer/reminder
 process_list   - List processes
@@ -1603,38 +1612,42 @@ process_list   - List processes
 CONTOH ALUR BENAR
 ═══════════════════════════════════════════════════════════
 
-User: "Hitung luas lingkaran radius 7, simpan hasilnya"
+User: "Buat file lua hello world, bisa didownload"
 
 [MODE: PLANNER]
 [PLAN]
-Task: Hitung luas lingkaran dan simpan
-Step 1: Hitung luas → Tool: calculate → Expected: hasil numerik
-Step 2: Simpan hasil → Tool: remember → Expected: confirmation
+Task: Buat file Lua dan sediakan download untuk user
+Step 1: Tulis konten Lua ke file → Tool: create_file → Expected: konfirmasi file dibuat
+Step 2: Generate tombol download → Tool: get_download → Expected: [FILE_EXPORT:...] marker
 Dependencies: Step 1 → Step 2
-Confidence: 95%
+Confidence: 99%
 
 [MODE: EXECUTOR]
-THOUGHT: Perlu hitung π*r² dengan r=7
-ACTION: calculate
-INPUT: 3.14159 * 7 * 7
+THOUGHT: Buat file Lua dulu dengan konten yang benar
+ACTION: create_file
+INPUT: hello.lua|||print("Hello World!")
 
 [MODE: EXECUTOR]
-THOUGHT: Dapat hasil 153.938, sekarang simpan
-ACTION: remember
-INPUT: luas_lingkaran=153.938
+THOUGHT: File sudah dibuat, sekarang generate download marker pakai get_download
+ACTION: get_download
+INPUT: hello.lua
 
 [MODE: CRITIC]
 [REFLECT]
-✓ Strengths: Perhitungan benar, format benar
-✗ Weaknesses: π hanya 5 desimal, bisa lebih presisi
-? Questions: Apakah user butuh precision lebih tinggi?
-Confidence: 85%
-Decision: DELIVER (acceptable precision)
+✓ Strengths: File dibuat benar, marker download valid
+✗ Weaknesses: -
+? Questions: -
+Confidence: 99%
+Decision: DELIVER
 
 [MODE: FINAL]
-FINAL ANSWER: Luas lingkaran dengan radius 7 adalah **153.938** (menggunakan π ≈ 3.14159). Hasil disimpan ke memori dengan key "luas_lingkaran".
+FINAL ANSWER: File Lua berhasil dibuat! Klik tombol di bawah untuk download:
 
-[[MEM: last_calculation=luas lingkaran r=7 → 153.938]]
+[FILE_EXPORT:hello.lua:cHJpbnQoIkhlbGxvIFdvcmxkISIp:text/x-lua]
+
+File siap didownload. 🎉
+
+[[MEM: last_file=hello.lua]]
 `;
 
 // NOTE: AGENT_SYS updated to GazccAgent Pro v2 with full PLANNER/EXECUTOR/CRITIC cycle
@@ -1677,8 +1690,19 @@ function hideAgentMode(){
   showAgentMode('idle');
 }
 
-// ---- AGENT RUNNER (GazccThinking) ----
+// ---- AGENT RUNNER (GazccThinking) — ReAct Loop v2 ----
 var GAZCC_AGENT='';
+
+async function _llmCall(messages,model){
+  var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
+    body:JSON.stringify({model:model,messages:messages,max_tokens:4000,temperature:0.7})
+  });
+  var d=await res.json();
+  if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
+  return (d.choices&&d.choices[0]&&d.choices[0].message)?d.choices[0].message.content:'';
+}
 
 async function runAgent(userMsg,files){
   var wrap=document.createElement('div');wrap.className='msg bot';wrap.style.maxWidth='98%';
@@ -1690,22 +1714,15 @@ async function runAgent(userMsg,files){
   var typDiv=document.createElement('div');typDiv.className='td';typDiv.innerHTML='<span></span><span></span><span></span>';
   bub.appendChild(typDiv);
 
-  var AGENT_SYS='Kamu adalah GazccThinking — AI agent otonom yang cerdas, analitis, dan hasil-oriented. '+
-    'Selesaikan task user secara menyeluruh: analisis, reasoning step-by-step, berikan solusi final yang konkret dan actionable. '+
-    'Format jawaban dengan jelas, gunakan markdown bila perlu. Jangan setengah-setengah.\n\n'+
-    '=== ATURAN FILE DOWNLOAD (WAJIB) ===\n'+
-    'Jika kamu menghasilkan file yang perlu didownload user, JANGAN gunakan path sandbox (sandbox:/mnt/...) atau markdown link biasa.\n'+
-    'WAJIB gunakan format ini PERSIS (satu baris):\n'+
-    '[FILE_EXPORT:namafile.ext:BASE64CONTENT:mime/type]\n'+
-    'Contoh file teks result.txt berisi hello -> [FILE_EXPORT:result.txt:aGVsbG8=:text/plain]\n'+
-    'Encode isi file ke Base64 lalu letakkan di posisi BASE64CONTENT.\n'+
-    'MIME umum: text/plain, text/x-lua, text/x-python, application/json, text/html, application/zip\n'+
-    'Frontend akan render tag ini jadi tombol download real. JANGAN output sandbox path.';
+  // Log container — tampilkan langkah-langkah agent ke user
+  var logDiv=document.createElement('div');logDiv.style.cssText='font-size:10px;color:var(--muted);border-left:2px solid var(--purple);padding:4px 8px;margin:4px 0;max-height:120px;overflow-y:auto;';
+  bub.appendChild(logDiv);
+  function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
     var promptParts=[];
     if(hist&&hist.length){
-      hist.slice(-10).forEach(function(m){
+      hist.slice(-8).forEach(function(m){
         var c=typeof m.content==='string'?m.content:'[file]';
         promptParts.push('['+m.role.toUpperCase()+']:\n'+c);
       });
@@ -1713,58 +1730,116 @@ async function runAgent(userMsg,files){
     promptParts.push('[USER]:\n'+(userMsg||''));
     var fullPrompt=promptParts.join('\n\n');
 
-    showAgentMode('thinking',40);
     var agentModel=document.getElementById('msel').value||'google/gemma-4-26b-a4b-it';
 
-    // ── FIX: inject files into agentMessages ──────────────────────────────
     var userContent=[];
     if(files&&files.length){
       files.forEach(function(f){
-        if(f.isImg){
-          userContent.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});
-        } else {
-          try{
-            var decoded=atob(f.data);
-            userContent.push({type:'text',text:'[File: '+f.name+']\n'+decoded});
-          } catch(e){
-            userContent.push({type:'text',text:'[File: '+f.name+' — binary, tidak dapat dibaca sebagai teks]'});
-          }
-        }
+        if(f.isImg){userContent.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}
+        else{try{userContent.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){userContent.push({type:'text',text:'[File: '+f.name+' — binary]'});}}
       });
     }
     userContent.push({type:'text',text:fullPrompt});
     var finalUserContent=(userContent.length===1)?fullPrompt:userContent;
-    var agentMessages=[{role:'system',content:AGENT_SYS},{role:'user',content:finalUserContent}];
-    // ─────────────────────────────────────────────────────────────────────
-    var res,d;
-    try{
-      res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:agentModel,messages:agentMessages,max_tokens:4000,temperature:0.7})
-      });
-      d=await res.json();
-    }catch(e){
-      typDiv.remove();
-      bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ GazccThinking error: '+e.message+'</div>';
-      hideAgentMode();return;
+
+    // Gunakan global AGENT_SYS (PLANNER/EXECUTOR/CRITIC) — bukan local override
+    var messages=[{role:'system',content:AGENT_SYS},{role:'user',content:finalUserContent}];
+
+    var MAX_TURNS=12;
+    var finalAnswer='';
+    var turnCount=0;
+
+    // ── ReAct Loop — parse ACTION/INPUT dari output LLM, eksekusi tool nyata ──
+    for(var turn=0;turn<MAX_TURNS;turn++){
+      turnCount=turn+1;
+      showAgentMode('thinking',10+turn*7);
+      agLog('Turn '+turnCount+': memanggil LLM...');
+
+      var llmOut;
+      try{llmOut=await _llmCall(messages,agentModel);}
+      catch(e){agLog('LLM error: '+e.message);break;}
+
+      // Cek Final Answer
+      var faMatch=llmOut.match(/FINAL ANSWER:\s*([\s\S]+)/i);
+      if(faMatch){finalAnswer=faMatch[1].trim();agLog('✅ Final Answer diterima');break;}
+
+      // Parse ACTION dan INPUT
+      var actionMatch=llmOut.match(/ACTION:\s*([a-zA-Z_]+)/);
+      var inputMatch=llmOut.match(/INPUT:\s*([\s\S]+?)(?=\n\[MODE:|$)/);
+
+      if(actionMatch){
+        var toolName=actionMatch[1].trim();
+        var toolInput=inputMatch?inputMatch[1].trim():'';
+        agLog('🔧 Tool: '+toolName+' | Input: '+toolInput.slice(0,60)+(toolInput.length>60?'...':''));
+        showAgentMode('executor',Math.min(90,20+turn*10));
+
+        var observation='';
+        var tool=AGENT_TOOLS[toolName];
+        if(tool){
+          try{
+            var res2=tool.run(toolInput);
+            // Support async tools (fetch_url, search_web)
+            if(res2&&typeof res2.then==='function')res2=await res2;
+            observation=String(res2||'(tool returned empty)');
+          }catch(e){observation='Tool error: '+e.message;}
+        } else {
+          observation='Error: tool "'+toolName+'" tidak dikenal. Tools tersedia: '+Object.keys(AGENT_TOOLS).join(', ');
+        }
+
+        // Jika tool return FILE_EXPORT marker, inject ke finalAnswer langsung
+        if(observation.indexOf('[FILE_EXPORT:')===0){
+          agLog('📦 File marker dihasilkan oleh tool');
+          // Lanjutkan — biarkan LLM include marker di Final Answer
+        }
+
+        agLog('Observation: '+observation.slice(0,80)+(observation.length>80?'...':''));
+        messages.push({role:'assistant',content:llmOut});
+        messages.push({role:'user',content:'Observation: '+observation+'\n\nLanjutkan ke step berikutnya atau output FINAL ANSWER jika sudah selesai.'});
+
+      } else {
+        // LLM nulis penjelasan doang tanpa tool call dan tanpa Final Answer
+        agLog('⚠️ LLM njelasain bukan ngeksekusi — paksa ulang');
+        messages.push({role:'assistant',content:llmOut});
+        messages.push({role:'user',content:'STOP. Jangan menjelaskan kepada saya. EKSEKUSI sekarang.\n\nJika perlu buat file:\nACTION: create_file\nINPUT: namafile.ext|||SELURUH ISI KONTEN DI SINI\n\nLalu:\nACTION: get_download\nINPUT: namafile.ext\n\nJika sudah selesai:\n[MODE: FINAL]\nFINAL ANSWER: [jawaban + marker dari get_download]'});
+        showAgentMode('critic',50);
+      }
+
+      // Guard: kalau llmOut ada text FINAL ANSWER tanpa pattern ketat
+      if(llmOut.includes('FINAL ANSWER:')&&!faMatch){
+        var raw=llmOut.split('FINAL ANSWER:').slice(1).join('FINAL ANSWER:').trim();
+        if(raw){finalAnswer=raw;agLog('✅ Final Answer (loose parse)');break;}
+      }
     }
+
+    if(!finalAnswer){
+      // Fallback: ambil output terakhir dari LLM sebagai final
+      finalAnswer=messages.length>2?String(messages[messages.length-2].content||'Agent selesai tanpa output.'):'Agent selesai.';
+      agLog('⚠️ Max turns reached, menggunakan output terakhir');
+    }
+
     typDiv.remove();
-
-    if(d.error){
-      bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d.error.message||JSON.stringify(d.error))+'</div>';
-      hideAgentMode();return;
-    }
-
-    var finalAnswer=(d.choices&&d.choices[0]&&d.choices[0].message)?d.choices[0].message.content:'';
+    logDiv.remove();
 
     var fa=document.createElement('div');
-    fa.innerHTML='<div class="agent-info-hdr">⚡ FINAL ANSWER</div>';
+    fa.innerHTML='<div class="agent-info-hdr">⚡ FINAL ANSWER ('+turnCount+' turns)</div>';
     var agFinal=document.createElement('div');agFinal.className='agent-final';
     fa.appendChild(agFinal);bub.appendChild(fa);
 
     var agParsed=parseAiMemoryTags(finalAnswer);
     finalAnswer=agParsed.cleaned;
+
+    // ── AUTO-FIX: Kalau LLM generate FILE_EXPORT manual (base64 salah/kosong),
+    // replace dengan marker yang bener dari agentFiles ──────────────────────
+    finalAnswer=finalAnswer.replace(/\[FILE_EXPORT:([^:\]]+):[^:\]]*:[^\]]*\]/g,function(match,fname){
+      if(agentFiles[fname]&&agentFiles[fname].content){
+        var content=agentFiles[fname].content;
+        var ext=fname.split('.').pop().toLowerCase();
+        var mime=ext==='lua'||ext==='lu'?'text/x-lua':ext==='py'?'text/x-python':ext==='js'?'application/javascript':ext==='json'?'application/json':ext==='html'?'text/html':ext==='zip'?'application/zip':'text/plain';
+        try{var b64=btoa(unescape(encodeURIComponent(content)));return '[FILE_EXPORT:'+fname+':'+b64+':'+mime+']';}
+        catch(e){return match;}
+      }
+      return match;
+    });
     updateLastCode(finalAnswer);
 
     var ci=0;var fa_str=finalAnswer;
@@ -1783,7 +1858,7 @@ async function runAgent(userMsg,files){
     badge();
 
   }catch(e){
-    if(typDiv.parentNode)typDiv.remove();
+    if(typDiv&&typDiv.parentNode)typDiv.remove();
     bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ GazccThinking error: '+e.message+'</div>';
     hideAgentMode();
   }
