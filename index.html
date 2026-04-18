@@ -591,7 +591,7 @@ strong{color:var(--txt);font-weight:600}
     <div class="mwrap">
       <select id="msel">
         <optgroup label="── OpenRouter Models ──">
-          <option value="google/gemma-4-26b-a4b-it">Gemma 4 26B</option>
+          <option value="moonshotai/kimi-k2.5">Kimi K2.5</option>
           <option value="minimax/minimax-m2.5:free">MiniMax M2.5 (Free)</option>
           <option value="nvidia/nemotron-3-super-120b-a12b:free">Nemotron 120B (Free)</option>
           <option value="deepseek">deepseek v2</option>
@@ -1480,7 +1480,7 @@ async function sendStream(messages,model){
     });
     var fullPrompt=promptParts.join('\n\n');
 
-    var selectedModel=model||document.getElementById('msel').value||'google/gemma-4-26b-a4b-it';
+    var selectedModel=model||document.getElementById('msel').value||'moonshotai/kimi-k2.5';
     var res,d;
     try{
       res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
@@ -1874,7 +1874,7 @@ async function runAgent(userMsg,files){
     promptParts.push('[USER]:\n'+(userMsg||''));
     var fullPrompt=promptParts.join('\n\n');
 
-    var agentModel=document.getElementById('msel').value||'google/gemma-4-26b-a4b-it';
+    var agentModel=document.getElementById('msel').value||'moonshotai/kimi-k2.5';
 
     var userContent=[];
     if(files&&files.length){
