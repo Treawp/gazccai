@@ -1673,7 +1673,27 @@ async function runAgent(userMsg,files){
 
     showAgentMode('thinking',40);
     var agentModel=document.getElementById('msel').value||'google/gemma-4-26b-a4b-it';
-    var agentMessages=[{role:'system',content:AGENT_SYS},{role:'user',content:fullPrompt}];
+
+    // ── FIX: inject files into agentMessages ──────────────────────────────
+    var userContent=[];
+    if(files&&files.length){
+      files.forEach(function(f){
+        if(f.isImg){
+          userContent.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});
+        } else {
+          try{
+            var decoded=atob(f.data);
+            userContent.push({type:'text',text:'[File: '+f.name+']\n'+decoded});
+          } catch(e){
+            userContent.push({type:'text',text:'[File: '+f.name+' — binary, tidak dapat dibaca sebagai teks]'});
+          }
+        }
+      });
+    }
+    userContent.push({type:'text',text:fullPrompt});
+    var finalUserContent=(userContent.length===1)?fullPrompt:userContent;
+    var agentMessages=[{role:'system',content:AGENT_SYS},{role:'user',content:finalUserContent}];
+    // ─────────────────────────────────────────────────────────────────────
     var res,d;
     try{
       res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
