@@ -336,6 +336,7 @@ strong{color:var(--txt);font-weight:600}
   0%,100%{opacity:1;transform:scale(1)}
   50%{opacity:.6;transform:scale(1.2)}
 }
+@keyframes spin{to{transform:rotate(360deg)}}
 
 .mode-label{color:var(--txt);font-weight:600;}
 .mode-label.planner{color:var(--cyan);}
@@ -1529,22 +1530,24 @@ async function sendStream(messages,model){
       // Animasi kata per kata + update indicator
       showAgentMode('thinking',30);
       var modeLabel=document.getElementById('modeLabel');
-      var thWords=thinkingText.split(/(\s+)/);
+      // Langsung tampilkan full thinking text di panel — tidak perlu animasi per kata
+      thBody.textContent=thinkingText;
+      thBody.scrollTop=0;
+      // Hanya indicator bar yang "scroll through" kata-kata selama max 2 detik
+      var thWords=thinkingText.split(/\s+/).filter(Boolean);
+      var thDuration=Math.min(2000,thWords.length*15);
+      var thStart=Date.now();
       await new Promise(function(resolve){
-        var wi=0;
-        function showWord(){
-          if(wi>=thWords.length){resolve();return;}
-          thBody.textContent+=thWords[wi];
-          thBody.scrollTop=thBody.scrollHeight;
-          chat.scrollTop=chat.scrollHeight;
-          // Update label dengan potongan pikiran terkini (max 38 karakter)
-          var recent=thBody.textContent.replace(/\s+/g,' ').trim();
-          var snippet=recent.length>38?'...'+recent.slice(-38):recent;
-          modeLabel.textContent='💭 '+snippet;
-          wi++;
-          setTimeout(showWord,wi%3===0?14:7); // sedikit variasi biar terasa natural
+        function tick(){
+          var elapsed=Date.now()-thStart;
+          if(elapsed>=thDuration){resolve();return;}
+          var progress=elapsed/thDuration;
+          var wi=Math.floor(progress*thWords.length);
+          var snippet=thWords.slice(Math.max(0,wi-5),wi+1).join(' ');
+          modeLabel.textContent='💭 '+(snippet.length>40?'...'+snippet.slice(-40):snippet);
+          setTimeout(tick,40);
         }
-        showWord();
+        tick();
       });
 
       // Selesai mikir — tutup panel, ubah label toggle
@@ -1913,7 +1916,35 @@ async function runAgent(userMsg,files){
   var typDiv=document.createElement('div');typDiv.className='td';typDiv.innerHTML='<span></span><span></span><span></span>';
   bub.appendChild(typDiv);
 
-  // Log container — tampilkan langkah-langkah agent ke user
+  // ── Timer & status bar ─────────────────────────────────────────────────
+  var agStartTime=Date.now();
+  var timerBar=document.createElement('div');
+  timerBar.style.cssText='display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);font-family:"Syne",sans-serif;letter-spacing:.5px;padding:3px 0;';
+  timerBar.innerHTML='<span id="agTimerDot" style="width:6px;height:6px;border-radius:50%;background:var(--cyan);display:inline-block;animation:modePulse 1.2s infinite"></span><span id="agTimerTxt">⏱ 0s — memproses...</span>';
+  bub.appendChild(timerBar);
+  var _timerInterval=setInterval(function(){
+    var el=document.getElementById('agTimerTxt');
+    if(el){var s=Math.floor((Date.now()-agStartTime)/1000);el.textContent='⏱ '+s+'s — memproses...';}
+  },1000);
+
+  // ── File progress card (muncul saat create_file / get_download dipanggil) ──
+  var fileCard=null;
+  function showFileCard(fname,state){
+    if(!fileCard){
+      fileCard=document.createElement('div');
+      fileCard.style.cssText='display:flex;align-items:center;gap:8px;background:rgba(255,214,10,0.06);border:1px solid rgba(255,214,10,0.2);border-radius:10px;padding:8px 12px;margin:6px 0;font-size:11px;font-family:"Syne",sans-serif;transition:all .3s;';
+      bub.appendChild(fileCard);
+    }
+    if(state==='creating'){
+      fileCard.innerHTML='<span style="font-size:16px">📄</span><div><div style="color:var(--yellow);letter-spacing:.5px">MEMBUAT FILE</div><div style="color:var(--muted);margin-top:2px">'+escH(fname)+'</div></div><span style="margin-left:auto;width:14px;height:14px;border:2px solid var(--yellow);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;display:inline-block"></span>';
+    }else if(state==='ready'){
+      fileCard.style.background='rgba(6,214,160,0.07)';
+      fileCard.style.borderColor='rgba(6,214,160,0.3)';
+      fileCard.innerHTML='<span style="font-size:16px">✅</span><div><div style="color:var(--green);letter-spacing:.5px">FILE SIAP</div><div style="color:var(--muted);margin-top:2px">'+escH(fname)+'</div></div>';
+    }
+  }
+
+  // Log container
   var logDiv=document.createElement('div');logDiv.style.cssText='font-size:10px;color:var(--muted);border-left:2px solid var(--purple);padding:4px 8px;margin:4px 0;max-height:120px;overflow-y:auto;';
   bub.appendChild(logDiv);
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
@@ -1990,6 +2021,10 @@ async function runAgent(userMsg,files){
           var toolName=allActions[ai].name;
           var toolInput=allActions[ai].input;
           agLog('🔧 Tool: '+toolName+' | Input: '+toolInput.slice(0,60)+(toolInput.length>60?'...':''));
+          // ── Show file card saat create/write dipanggil ───────────────────
+          if(toolName==='create_file'||toolName==='write_file'){
+            showFileCard(toolInput.split('|||')[0].trim(),'creating');
+          }
           var observation='';
           var tool=AGENT_TOOLS[toolName];
           if(tool){
@@ -2000,6 +2035,10 @@ async function runAgent(userMsg,files){
             }catch(e){observation='Tool error: '+e.message;}
           } else {
             observation='Error: tool "'+toolName+'" tidak dikenal.';
+          }
+          // ── Update file card ke ready saat get_download sukses ───────────
+          if(toolName==='get_download'){
+            showFileCard(toolInput.trim(), observation.indexOf('[FILE_EXPORT:')===0?'ready':'creating');
           }
           if(observation.indexOf('[FILE_EXPORT:')===0){
             agLog('📦 File marker disimpan');
@@ -2069,9 +2108,12 @@ async function runAgent(userMsg,files){
 
     typDiv.remove();
     logDiv.remove();
+    clearInterval(_timerInterval);
+    timerBar.remove();
+    if(fileCard)fileCard.remove();
 
     var fa=document.createElement('div');
-    fa.innerHTML='<div class="agent-info-hdr">⚡ FINAL ANSWER ('+turnCount+' turns)</div>';
+    fa.innerHTML='<div class="agent-info-hdr">⚡ FINAL ANSWER ('+turnCount+' turns · '+Math.round((Date.now()-agStartTime)/1000)+'s)</div>';
     var agFinal=document.createElement('div');agFinal.className='agent-final';
     fa.appendChild(agFinal);bub.appendChild(fa);
 
@@ -2082,6 +2124,35 @@ async function runAgent(userMsg,files){
     if(pendingFileExports.length>0&&finalAnswer.indexOf('[FILE_EXPORT:')<0){
       finalAnswer=finalAnswer.replace(/\[DOWNLOAD_[^\]]*\]/gi,'').trim();
       finalAnswer=finalAnswer+'\n\n'+pendingFileExports.join('\n');
+    }
+
+    // ── Tampilkan download chip SEGERA, tidak perlu tunggu typewriter ──────
+    if(pendingFileExports.length>0){
+      var dlPanel=document.createElement('div');
+      dlPanel.style.cssText='margin-bottom:10px;';
+      dlPanel.innerHTML='<div style="font-size:9px;letter-spacing:2px;font-family:\'Syne\',sans-serif;color:var(--yellow);margin-bottom:6px;">📦 FILE SIAP</div>';
+      pendingFileExports.forEach(function(marker){
+        var m=marker.match(/\[FILE_EXPORT:([^:]+):([^:]*):([^\]]*)\]/);
+        if(!m)return;
+        var fname=m[1],b64=m[2],mime=m[3];
+        var chip=document.createElement('a');
+        chip.className='file-dl-chip';
+        chip.href='#';
+        chip.innerHTML='⬇️ '+escH(fname);
+        chip.onclick=function(e){
+          e.preventDefault();
+          try{
+            var bin=atob(b64);
+            var arr=new Uint8Array(bin.length);
+            for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+            var blob=new Blob([arr],{type:mime||'application/octet-stream'});
+            var a2=document.createElement('a');a2.href=URL.createObjectURL(blob);a2.download=fname;a2.click();
+          }catch(e2){alert('Download error: '+e2.message);}
+        };
+        dlPanel.appendChild(chip);
+      });
+      fa.insertBefore(dlPanel, agFinal);
+      chat.scrollTop=chat.scrollHeight;
     }
 
     updateLastCode(finalAnswer);
@@ -2118,6 +2189,7 @@ async function runAgent(userMsg,files){
 
   }catch(e){
     if(typDiv&&typDiv.parentNode)typDiv.remove();
+    clearInterval(_timerInterval);
     bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ GazccThinking error: '+e.message+'</div>';
     hideAgentMode();
   }
@@ -2131,7 +2203,7 @@ function toggleStep(uid){
 async function send(){
   var t=inp.value.trim();var files=pendingFiles.slice();
   if(!t&&files.length===0)return;if(!API_KEY)return;
-  inp.value='';btn.disabled=true;pendingFiles=[];renderAttachBar();
+  inp.value='';inp.style.height='auto';_fixBarPos();btn.disabled=true;pendingFiles=[];renderAttachBar();
   if(t)_autoNameChat(t);
   addMsg('user',t,files);
 
