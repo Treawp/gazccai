@@ -1250,14 +1250,18 @@ async function sendStream(messages,model){
     });
     var fullPrompt=promptParts.join('\n\n');
 
-    var cvUrl='/api/proxy?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(SYS_PROMPT||'You are a helpful AI assistant.')+'&key='+encodeURIComponent(API_KEY)+'&model='+encodeURIComponent(model||document.getElementById('msel').value||'google/gemma-4-26b-a4b-it');
+    var selectedModel=model||document.getElementById('msel').value||'google/gemma-4-26b-a4b-it';
     var res,d;
     try{
-      res=await fetch(cvUrl,{method:'GET'});
+      res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
+        body:JSON.stringify({model:selectedModel,messages:messages,max_tokens:4000,temperature:0.7})
+      });
       d=await res.json();
     }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ OpenRouter error: '+e.message+'</div>';return null;}
-    if(!d||!d.status){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d&&d.message?d.message:JSON.stringify(d))+'</div>';return null;}
-    replyText=(d.data&&d.data.result)?d.data.result:'';
+    if(d.error){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d.error.message||JSON.stringify(d.error))+'</div>';return null;}
+    replyText=(d.choices&&d.choices[0]&&d.choices[0].message)?d.choices[0].message.content:'';
     if(!replyDiv){replyDiv=document.createElement('div');replyDiv.appendChild(cursor);bub.appendChild(replyDiv);}
 
     // Typewriter effect
@@ -1601,17 +1605,29 @@ async function runAgent(userMsg,files){
     var fullPrompt=promptParts.join('\n\n');
 
     showAgentMode('thinking',40);
-    var cvUrl='/api/proxy?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(AGENT_SYS)+'&key='+encodeURIComponent(API_KEY)+'&model='+encodeURIComponent(document.getElementById('msel').value||'google/gemma-4-26b-a4b-it');
-    var res=await fetch(cvUrl,{method:'GET'});
-    var d=await res.json();
+    var agentModel=document.getElementById('msel').value||'google/gemma-4-26b-a4b-it';
+    var agentMessages=[{role:'system',content:AGENT_SYS},{role:'user',content:fullPrompt}];
+    var res,d;
+    try{
+      res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
+        body:JSON.stringify({model:agentModel,messages:agentMessages,max_tokens:4000,temperature:0.7})
+      });
+      d=await res.json();
+    }catch(e){
+      typDiv.remove();
+      bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ GazccThinking error: '+e.message+'</div>';
+      hideAgentMode();return;
+    }
     typDiv.remove();
 
-    if(!d||!d.status){
-      bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ GazccThinking error: '+(d&&d.message?d.message:JSON.stringify(d))+'</div>';
+    if(d.error){
+      bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d.error.message||JSON.stringify(d.error))+'</div>';
       hideAgentMode();return;
     }
 
-    var finalAnswer=(d.data&&d.data.result)?d.data.result:(d.result||d.message||'');
+    var finalAnswer=(d.choices&&d.choices[0]&&d.choices[0].message)?d.choices[0].message.content:'';
 
     var fa=document.createElement('div');
     fa.innerHTML='<div class="agent-info-hdr">⚡ FINAL ANSWER</div>';
