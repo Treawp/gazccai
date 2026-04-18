@@ -342,6 +342,10 @@ strong{color:var(--txt);font-weight:600}
 .mode-label.executor{color:var(--green);}
 .mode-label.critic{color:var(--pink);}
 .mode-label.thinking{color:var(--yellow);}
+.mode-dot.generating{background:var(--cyan);box-shadow:0 0 10px var(--cyan);}
+.mode-dot.continuing{background:#ff9f1c;box-shadow:0 0 10px #ff9f1c;}
+.mode-label.generating{color:var(--cyan);}
+.mode-label.continuing{color:#ff9f1c;}
 
 .agent-progress{
   position:fixed;top:52px;left:0;right:0;height:2px;
@@ -1491,20 +1495,72 @@ async function sendStream(messages,model){
     var fullPrompt=promptParts.join('\n\n');
 
     var selectedModel=model||document.getElementById('msel').value||'moonshotai/kimi-k2.5';
-    var res,d;
+    // Tampilkan indikator proses AI
+    showAgentMode('generating', 15);
+    var contBadge=null;
     try{
-      res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:selectedModel,messages:messages,max_tokens:4000,temperature:0.7})
+      replyText=await _llmCall(messages,selectedModel,function(round,max){
+        showAgentMode('continuing', 20+round*15);
+        if(!contBadge){
+          contBadge=document.createElement('div');
+          contBadge.style.cssText='font-size:10px;color:#ff9f1c;padding:3px 0;font-family:"Syne",sans-serif;letter-spacing:.5px;';
+          bub.appendChild(contBadge);
+        }
+        contBadge.textContent='🔄 Melanjutkan output... ('+round+'/'+max+')';
       });
-      d=await res.json();
-    }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ OpenRouter error: '+e.message+'</div>';return null;}
-    if(d.error){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ '+(d.error.message||JSON.stringify(d.error))+'</div>';return null;}
-    replyText=(d.choices&&d.choices[0]&&d.choices[0].message)?d.choices[0].message.content:'';
+    }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ OpenRouter error: '+e.message+'</div>';hideAgentMode();return null;}
+
+    // ── Parse <think> sebelum typewriter ──────────────────────────────────
+    var rawThink=replyText.match(/^<think>([\s\S]*?)<\/think>([\s\S]*)$/);
+    if(rawThink){
+      thinkingText=rawThink[1].trim();
+      replyText=rawThink[2].trim();
+
+      // Buat panel thinking yang terbuka langsung
+      var thWrap=document.createElement('div');thWrap.className='thinking-wrap';
+      var thTog=document.createElement('div');thTog.className='thinking-toggle open';
+      thTog.innerHTML='<span>💭 Berpikir...</span><span class="arrow" style="transform:rotate(90deg)">▶</span>';
+      var thBody=document.createElement('div');thBody.className='thinking-content show';
+      thBody.style.cssText='font-size:11px;color:rgba(160,180,220,0.75);font-family:"JetBrains Mono",monospace;white-space:pre-wrap;word-break:break-word;line-height:1.7;max-height:220px;overflow-y:auto;';
+      thWrap.appendChild(thTog);thWrap.appendChild(thBody);bub.appendChild(thWrap);
+      (function(a,b){a.onclick=function(){var o=b.classList.contains('show');b.classList.toggle('show',!o);a.classList.toggle('open',!o);};})(thTog,thBody);
+      thinkContent=thBody;
+
+      // Animasi kata per kata + update indicator
+      showAgentMode('thinking',30);
+      var modeLabel=document.getElementById('modeLabel');
+      var thWords=thinkingText.split(/(\s+)/);
+      await new Promise(function(resolve){
+        var wi=0;
+        function showWord(){
+          if(wi>=thWords.length){resolve();return;}
+          thBody.textContent+=thWords[wi];
+          thBody.scrollTop=thBody.scrollHeight;
+          chat.scrollTop=chat.scrollHeight;
+          // Update label dengan potongan pikiran terkini (max 38 karakter)
+          var recent=thBody.textContent.replace(/\s+/g,' ').trim();
+          var snippet=recent.length>38?'...'+recent.slice(-38):recent;
+          modeLabel.textContent='💭 '+snippet;
+          wi++;
+          setTimeout(showWord,wi%3===0?14:7); // sedikit variasi biar terasa natural
+        }
+        showWord();
+      });
+
+      // Selesai mikir — tutup panel, ubah label toggle
+      thTog.innerHTML='<span>🧠 Thinking</span><span class="arrow">▶</span>';
+      thTog.classList.remove('open');
+      thBody.classList.remove('show');
+      hideAgentMode();
+      await new Promise(function(r){setTimeout(r,200);}); // jeda sebentar sebelum jawaban
+    }
+
+    hideAgentMode();
+    if(contBadge)contBadge.remove();
     if(!replyDiv){replyDiv=document.createElement('div');replyDiv.appendChild(cursor);bub.appendChild(replyDiv);}
 
-    // Typewriter effect
+    // Typewriter effect — hanya reply bersih (tanpa <think>)
+    showAgentMode('generating',90);
     var ci=0;
     await new Promise(function(resolve){
       function typeNext(){
@@ -1515,28 +1571,13 @@ async function sendStream(messages,model){
       }
       typeNext();
     });
-  }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Error: '+e.message+'</div>';return null;}
+    hideAgentMode();
+
+  }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Error: '+e.message+'</div>';hideAgentMode();return null;}
 
   if(cursor.parentNode)cursor.parentNode.removeChild(cursor);
 
-  if(!thinkingText&&replyText.includes('<think>')){
-    var tm=replyText.match(/^<think>([\s\S]*?)<\/think>([\s\S]*)$/);
-    if(tm){
-      thinkingText=tm[1].trim();replyText=tm[2].trim();
-      bub.innerHTML='';
-      if(thinkingText){
-        var tw3=document.createElement('div');tw3.className='thinking-wrap';
-        var tog3=document.createElement('div');tog3.className='thinking-toggle';
-        tog3.innerHTML='<span>🧠 Thinking</span><span class="arrow">▶</span>';
-        var tc3=document.createElement('div');tc3.className='thinking-content';tc3.textContent=thinkingText;
-        (function(a,b){a.onclick=function(){var o=b.classList.contains('show');b.classList.toggle('show',!o);a.classList.toggle('open',!o);};})(tog3,tc3);
-        tw3.appendChild(tog3);tw3.appendChild(tc3);bub.appendChild(tw3);
-      }
-      var rd2=document.createElement('div');rd2.innerHTML=formatText(replyText);bub.appendChild(rd2);
-    }
-  }
-
-  if(thinkContent){var togL=thinkContent.previousElementSibling;if(togL)togL.querySelector('span').textContent='🧠 Thinking';}
+  // <think> sudah dihandle sebelum typewriter — skip parsing ulang
 
   // ★ Parse & save AI memory tags
   var parsed=parseAiMemoryTags(replyText);
@@ -1813,7 +1854,9 @@ function showAgentMode(mode,progress){
     planner:'🧠 PLANNER',
     executor:'⚡ EXECUTOR',
     critic:'🔍 CRITIC',
-    thinking:'💭 THINKING'
+    thinking:'💭 THINKING',
+    generating:'⌛ GENERATING',
+    continuing:'🔄 CONTINUING...'
   };
   label.textContent=labels[mode]||mode.toUpperCase();
   if(progress!==undefined){
@@ -1840,7 +1883,7 @@ async function _llmCall(messages,model,onContinue){
     var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
       headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-      body:JSON.stringify({model:model,messages:curMessages,max_tokens:4000,temperature:0.7})
+      body:JSON.stringify({model:model,messages:curMessages,max_tokens:8192,temperature:0.7})
     });
     var d=await res.json();
     if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
