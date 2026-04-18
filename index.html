@@ -1706,7 +1706,7 @@ ATURAN KETAT
 7. Task buat/tulis file: WAJIB ACTION: create_file lalu ACTION: get_download. Tidak boleh skip.
 8. MUTLAK DILARANG: menulis [FILE_EXPORT:...] di output kamu — system akan MENOLAK jawaban tersebut. HANYA get_download yang boleh generate marker ini.
 9. Jangan instruksikan user melakukan sesuatu yang bisa kamu kerjakan sendiri dengan tools
-10. Setelah get_download, kamu akan menerima placeholder [DOWNLOAD_N] — tulis placeholder itu PERSIS di FINAL ANSWER.
+10. Setelah get_download berhasil, langsung tulis FINAL ANSWER biasa — tombol download akan otomatis muncul tanpa perlu kamu tulis format apapun.
 
 ═══════════════════════════════════════════════════════════
 TOOLS TERSEDIA
@@ -1932,7 +1932,7 @@ async function runAgent(userMsg,files){
         if(observation.indexOf('[FILE_EXPORT:')===0){
           agLog('📦 File marker disimpan — LLM tidak perlu copy base64');
           pendingFileExports.push(observation);
-          observation='✅ File siap download. Tulis persis ini di FINAL ANSWER: [DOWNLOAD_'+(pendingFileExports.length-1)+']';
+          observation='✅ File berhasil dibuat dan siap didownload. Lanjutkan ke FINAL ANSWER — tombol download akan otomatis muncul, kamu tidak perlu menulis apapun soal download.';
         }
 
         agLog('Observation: '+observation.slice(0,80)+(observation.length>80?'...':''));
@@ -1977,19 +1977,10 @@ async function runAgent(userMsg,files){
     var agParsed=parseAiMemoryTags(finalAnswer);
     finalAnswer=agParsed.cleaned;
 
-    // Inject FILE_EXPORT markers yang disimpan dari tool get_download
-    if(pendingFileExports.length>0){
-      pendingFileExports.forEach(function(marker,idx){
-        var placeholder='[DOWNLOAD_'+idx+']';
-        if(finalAnswer.indexOf(placeholder)>=0){
-          finalAnswer=finalAnswer.split(placeholder).join(marker);
-        }
-      });
-      // Fallback: kalau LLM tidak tulis placeholder sama sekali, append semua marker
-      var stillHasPlaceholder=pendingFileExports.some(function(_,idx){return finalAnswer.indexOf('[DOWNLOAD_'+idx+']')>=0;});
-      if(!stillHasPlaceholder&&finalAnswer.indexOf('[FILE_EXPORT:')<0){
-        finalAnswer=finalAnswer+'\n\n'+pendingFileExports.join('\n');
-      }
+   // Auto-inject FILE_EXPORT markers — model tidak perlu tulis placeholder
+    if(pendingFileExports.length>0&&finalAnswer.indexOf('[FILE_EXPORT:')<0){
+      finalAnswer=finalAnswer.replace(/\[DOWNLOAD_[^\]]*\]/gi,'').trim();
+      finalAnswer=finalAnswer+'\n\n'+pendingFileExports.join('\n');
     }
 
     updateLastCode(finalAnswer);
