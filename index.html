@@ -1250,7 +1250,7 @@ async function sendStream(messages,model){
     });
     var fullPrompt=promptParts.join('\n\n');
 
-    var cvUrl='/api/proxy?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(SYS_PROMPT||'You are a helpful AI assistant.')+'&key='+encodeURIComponent(API_KEY);
+    var cvUrl='/api/proxy?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(SYS_PROMPT||'You are a helpful AI assistant.')+'&key='+encodeURIComponent(API_KEY)+'&model='+encodeURIComponent(model||document.getElementById('msel').value||'google/gemma-4-26b-a4b-it');
     var res,d;
     try{
       res=await fetch(cvUrl,{method:'GET'});
@@ -1601,7 +1601,7 @@ async function runAgent(userMsg,files){
     var fullPrompt=promptParts.join('\n\n');
 
     showAgentMode('thinking',40);
-    var cvUrl='/api/proxy?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(AGENT_SYS)+'&key='+encodeURIComponent(API_KEY);
+    var cvUrl='/api/proxy?question='+encodeURIComponent(fullPrompt)+'&system='+encodeURIComponent(AGENT_SYS)+'&key='+encodeURIComponent(API_KEY)+'&model='+encodeURIComponent(document.getElementById('msel').value||'google/gemma-4-26b-a4b-it');
     var res=await fetch(cvUrl,{method:'GET'});
     var d=await res.json();
     typDiv.remove();
