@@ -1907,8 +1907,12 @@ async function _llmCall(messages,model,onContinue){
       headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
       body:JSON.stringify({model:model,messages:curMessages,max_tokens:8192,temperature:0.7})
     });
+    if(!res.ok){
+      var errBody='';try{var ej=await res.json();errBody=ej.error&&ej.error.message?ej.error.message:JSON.stringify(ej);}catch(pe){errBody=await res.text().catch(function(){return '';});}
+      throw new Error('[HTTP '+res.status+'] '+errBody);
+    }
     var d=await res.json();
-    if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
+    if(d.error)throw new Error('[API Error] '+(d.error.message||JSON.stringify(d.error)));
     var choice=(d.choices&&d.choices[0])||{};
     var chunk=(choice.message&&choice.message.content)||'';
     var finishReason=choice.finish_reason||'stop';
@@ -2032,7 +2036,23 @@ async function runAgent(userMsg,files){
         badge.innerHTML='&#9889; Melanjutkan output... ('+round+'/'+max+')';
         logDiv.appendChild(badge);logDiv.scrollTop=logDiv.scrollHeight;
       });}
-      catch(e){agLog('LLM error: '+e.message);break;}
+      catch(e){
+        var errMsg=e.message||String(e);
+        agLog('❌ LLM error: '+errMsg);
+        // Deteksi API key issue
+        if(errMsg.toLowerCase().indexOf('401')>=0||errMsg.toLowerCase().indexOf('invalid api key')>=0||errMsg.toLowerCase().indexOf('unauthorized')>=0||errMsg.toLowerCase().indexOf('no auth')>=0){
+          finalAnswer='❌ **API Key tidak valid atau sudah expired.**\n\nGanti API Key di tombol ⚙️ Settings, lalu coba lagi.\n\nError: `'+errMsg+'`';
+        } else if(errMsg.toLowerCase().indexOf('402')>=0||errMsg.toLowerCase().indexOf('insufficient')>=0||errMsg.toLowerCase().indexOf('credit')>=0){
+          finalAnswer='❌ **Kredit OpenRouter habis.**\n\nTop up di [openrouter.ai/credits](https://openrouter.ai/credits).\n\nError: `'+errMsg+'`';
+        } else if(errMsg.toLowerCase().indexOf('429')>=0||errMsg.toLowerCase().indexOf('rate limit')>=0){
+          finalAnswer='❌ **Rate limit — terlalu banyak request.**\n\nTunggu beberapa detik lalu coba lagi.\n\nError: `'+errMsg+'`';
+        } else if(errMsg.toLowerCase().indexOf('timeout')>=0||errMsg.toLowerCase().indexOf('network')>=0||errMsg.toLowerCase().indexOf('fetch')>=0){
+          finalAnswer='❌ **Koneksi timeout/gagal ke LLM API.**\n\nCek koneksi internet, lalu coba lagi.\n\nError: `'+errMsg+'`';
+        } else {
+          finalAnswer='❌ **LLM error** (turn '+turnCount+'):\n\n`'+errMsg+'`';
+        }
+        break;
+      }
 
       // ── STEP 1: Eksekusi SEMUA tool calls dulu sebelum cek FINAL ANSWER ──
       // (fix bug: model nulis get_download + FINAL ANSWER di 1 response, dulu tool diskip)
@@ -2145,8 +2165,13 @@ async function runAgent(userMsg,files){
 
     if(!finalAnswer){
       // Fallback: ambil output terakhir dari LLM sebagai final
-      finalAnswer=messages.length>2?String(messages[messages.length-2].content||'Agent selesai tanpa output.'):'Agent selesai.';
-      agLog('⚠️ Max turns reached, menggunakan output terakhir');
+      if(messages.length>2){
+        finalAnswer=String(messages[messages.length-2].content||'⚠️ Agent selesai tanpa output.');
+      } else {
+        // messages.length <= 2 = LLM call gagal di turn pertama
+        finalAnswer='❌ **Agent gagal memulai.**\n\nKemungkinan penyebab:\n• API Key salah atau expired — cek di ⚙️ Settings\n• Model "'+agentModel+'" tidak tersedia di akun lo\n• Koneksi ke OpenRouter gagal\n\nCoba: ganti API Key, pilih model lain, atau cek [status.openrouter.ai](https://status.openrouter.ai).';
+      }
+      agLog('⚠️ Max turns reached atau LLM gagal — menggunakan fallback');
     }
 
     typDiv.remove();
