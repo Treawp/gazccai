@@ -1824,8 +1824,8 @@ function hideAgentMode(){
 var GAZCC_AGENT='';
 
 async function _llmCall(messages,model,onContinue){
-  // Auto-continuation: kalau finish_reason == 'length', lanjut otomatis sampai selesai
-  var MAX_CONT=6,parts=[],curMessages=messages.slice();
+  // Auto-continuation: lanjut kalau finish_reason=='length' DAN belum ada FINAL ANSWER
+  var MAX_CONT=3,parts=[],curMessages=messages.slice();
   for(var round=0;round<MAX_CONT;round++){
     var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
@@ -1835,13 +1835,15 @@ async function _llmCall(messages,model,onContinue){
     var d=await res.json();
     if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
     var choice=(d.choices&&d.choices[0])||{};
-    var content=(choice.message&&choice.message.content)||'';
+    var chunk=(choice.message&&choice.message.content)||'';
     var finishReason=choice.finish_reason||'stop';
-    parts.push(content);
-    if(finishReason!=='length')break;
+    parts.push(chunk);
+    var combined=parts.join('');
+    // Stop kalau udah selesai natural ATAU output udah ada FINAL ANSWER
+    if(finishReason!=='length'||/FINAL ANSWER:/i.test(combined))break;
     if(typeof onContinue==='function')onContinue(round+1,MAX_CONT);
     curMessages=curMessages.concat([
-      {role:'assistant',content:content},
+      {role:'assistant',content:chunk},
       {role:'user',content:'Output kamu terpotong. Lanjutkan TEPAT dari titik terakhir — jangan ulangi, langsung sambung.'}
     ]);
   }
