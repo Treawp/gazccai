@@ -1823,15 +1823,29 @@ function hideAgentMode(){
 // ---- AGENT RUNNER (GazccThinking) — ReAct Loop v2 ----
 var GAZCC_AGENT='';
 
-async function _llmCall(messages,model){
-  var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-    method:'POST',
-    headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-    body:JSON.stringify({model:model,messages:messages,max_tokens:4000,temperature:0.7})
-  });
-  var d=await res.json();
-  if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-  return (d.choices&&d.choices[0]&&d.choices[0].message)?d.choices[0].message.content:'';
+async function _llmCall(messages,model,onContinue){
+  // Auto-continuation: kalau finish_reason == 'length', lanjut otomatis sampai selesai
+  var MAX_CONT=6,parts=[],curMessages=messages.slice();
+  for(var round=0;round<MAX_CONT;round++){
+    var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
+      body:JSON.stringify({model:model,messages:curMessages,max_tokens:4000,temperature:0.7})
+    });
+    var d=await res.json();
+    if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
+    var choice=(d.choices&&d.choices[0])||{};
+    var content=(choice.message&&choice.message.content)||'';
+    var finishReason=choice.finish_reason||'stop';
+    parts.push(content);
+    if(finishReason!=='length')break;
+    if(typeof onContinue==='function')onContinue(round+1,MAX_CONT);
+    curMessages=curMessages.concat([
+      {role:'assistant',content:content},
+      {role:'user',content:'Output kamu terpotong. Lanjutkan TEPAT dari titik terakhir — jangan ulangi, langsung sambung.'}
+    ]);
+  }
+  return parts.join('');
 }
 
 async function runAgent(userMsg,files){
@@ -1887,7 +1901,14 @@ async function runAgent(userMsg,files){
       agLog('Turn '+turnCount+': memanggil LLM...');
 
       var llmOut;
-      try{llmOut=await _llmCall(messages,agentModel);}
+      try{llmOut=await _llmCall(messages,agentModel,function(round,max){
+        agLog('⚡ Output terpotong — auto-lanjut round '+round+'/'+max+'...');
+        // Tampilkan badge continuation di logDiv
+        var badge=document.createElement('div');
+        badge.style.cssText='display:inline-flex;align-items:center;gap:4px;background:rgba(247,37,133,0.12);border:1px solid rgba(247,37,133,0.3);border-radius:6px;padding:2px 7px;font-size:9px;color:var(--pink);margin:2px 0;';
+        badge.innerHTML='&#9889; Melanjutkan output... ('+round+'/'+max+')';
+        logDiv.appendChild(badge);logDiv.scrollTop=logDiv.scrollHeight;
+      });}
       catch(e){agLog('LLM error: '+e.message);break;}
 
       // ── STEP 1: Eksekusi SEMUA tool calls dulu sebelum cek FINAL ANSWER ──
