@@ -1664,7 +1664,24 @@ function showAgentPopup(){
 }
 
 // ---- AGENT TOOLS ----
+var _agentCurrentImages=[]; // Gambar yang dilampirkan user di sesi agent ini
+
 var AGENT_TOOLS={
+  analyze_image:{desc:'Analisis gambar yang dilampirkan user. Input: pertanyaan/instruksi analisis (kosong = analisis umum)',run:async function(input){
+    if(!_agentCurrentImages.length)return 'Tidak ada gambar yang dilampirkan di pesan ini.';
+    var imgContent=_agentCurrentImages.map(function(f){return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};});
+    imgContent.push({type:'text',text:input&&input.trim()?input.trim():'Analisis gambar ini secara lengkap dan detail. Jelaskan semua yang kamu lihat.'});
+    try{
+      var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
+        body:JSON.stringify({model:document.getElementById('msel').value||'moonshotai/kimi-k2.5',messages:[{role:'user',content:imgContent}],max_tokens:2000})
+      });
+      var vData=await vRes.json();
+      if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
+      return (vData.choices&&vData.choices[0]&&vData.choices[0].message&&vData.choices[0].message.content)||'Tidak ada hasil analisis.';
+    }catch(e){return 'Error analyze_image: '+e.message;}
+  }},
   calculate:{desc:'Hitung ekspresi matematika',run:function(input){try{return 'Result: '+Function('"use strict";return ('+input.replace(/\^/g,'**')+')')();}catch(e){return 'Error: '+e.message;}}},
   get_time:{desc:'Waktu sekarang',run:function(){return new Date().toLocaleString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',timeZoneName:'short'});}},
   remember:{desc:'Simpan ke memori. Input: key=value',run:function(input){var idx=input.indexOf('=');if(idx<0)return 'Error: format key=value';var k=input.slice(0,idx).trim(),v=input.slice(idx+1).trim();agentMemory[k]=v;saveAgentMemory();return 'Tersimpan: '+k+' = '+v;}},
@@ -1761,11 +1778,13 @@ ATURAN KETAT
 8. MUTLAK DILARANG: menulis [FILE_EXPORT:...] di output kamu — system akan MENOLAK jawaban tersebut. HANYA get_download yang boleh generate marker ini.
 9. Jangan instruksikan user melakukan sesuatu yang bisa kamu kerjakan sendiri dengan tools
 10. Setelah get_download berhasil, langsung tulis FINAL ANSWER biasa — tombol download akan otomatis muncul tanpa perlu kamu tulis format apapun.
+11. GAMBAR TERLAMPIR: Jika ada notifikasi "[GAMBAR TERLAMPIR]" di pesan user, WAJIB gunakan ACTION: analyze_image di turn pertama sebelum melanjutkan task lain.
 
 ═══════════════════════════════════════════════════════════
 TOOLS TERSEDIA
 ═══════════════════════════════════════════════════════════
 
+analyze_image  - Analisis gambar yang dilampirkan user. Input: pertanyaan/instruksi (kosong=analisis umum)
 calculate      - Math expression
 get_time       - Current datetime
 remember       - Save to agent memory (key=value)
@@ -1980,6 +1999,22 @@ async function runAgent(userMsg,files){
     var finalAnswer='';
     pendingFileExports=[]; // Reset untuk setiap agent run baru
     agentFiles={}; saveAgentFiles(); // Reset file storage + localStorage tiap run baru
+    // Simpan gambar di sesi ini agar analyze_image tool bisa akses
+    _agentCurrentImages=(files||[]).filter(function(f){return f.isImg;});
+    if(_agentCurrentImages.length){
+      agLog('🖼 '+_agentCurrentImages.length+' gambar terdeteksi — analyze_image tersedia');
+      // Inject notifikasi ke pesan user terakhir agar agent tau
+      var lastMsg=messages[messages.length-1];
+      if(lastMsg&&lastMsg.role==='user'){
+        var note='\n\n[GAMBAR TERLAMPIR: '+_agentCurrentImages.length+' gambar. WAJIB gunakan ACTION: analyze_image di langkah pertama.]';
+        if(typeof lastMsg.content==='string') lastMsg.content+=note;
+        else if(Array.isArray(lastMsg.content)){
+          var txtBlock=lastMsg.content.find(function(x){return x.type==='text';});
+          if(txtBlock) txtBlock.text+=note;
+          else lastMsg.content.push({type:'text',text:note});
+        }
+      }
+    }
     var turnCount=0;
 
     // ── ReAct Loop — parse ACTION/INPUT dari output LLM, eksekusi tool nyata ──
@@ -2025,6 +2060,10 @@ async function runAgent(userMsg,files){
           if(toolName==='create_file'||toolName==='write_file'){
             showFileCard(toolInput.split('|||')[0].trim(),'creating');
           }
+          // ── Show image analysis indicator ────────────────────────────────
+          if(toolName==='analyze_image'){
+            showFileCard('Menganalisis gambar...','creating');
+          }
           var observation='';
           var tool=AGENT_TOOLS[toolName];
           if(tool){
@@ -2039,6 +2078,10 @@ async function runAgent(userMsg,files){
           // ── Update file card ke ready saat get_download sukses ───────────
           if(toolName==='get_download'){
             showFileCard(toolInput.trim(), observation.indexOf('[FILE_EXPORT:')===0?'ready':'creating');
+          }
+          // ── Mark image analysis done ──────────────────────────────────────
+          if(toolName==='analyze_image'&&!observation.startsWith('Error')&&!observation.startsWith('Tidak ada gambar')){
+            showFileCard('Analisis selesai','ready');
           }
           if(observation.indexOf('[FILE_EXPORT:')===0){
             agLog('📦 File marker disimpan');
