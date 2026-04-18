@@ -1177,6 +1177,73 @@ function formatBytes(bytes) {
   return (bytes/1024/1024).toFixed(1) + ' MB';
 }
 
+// ── renderFinalAnswer ──────────────────────────────────────────────────────
+// Fungsi utama untuk render jawaban agent.
+// WAJIB dipanggil dengan teks RAW (sebelum formatText) agar marker FILE_EXPORT
+// bisa diekstrak dulu sebelum \n→<br> merusak base64.
+function _buildDownloadBtn(filename, b64clean, mime) {
+  try {
+    var byteChars = atob(b64clean);
+    var byteArr = new Uint8Array(byteChars.length);
+    for (var i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+    var blob = new Blob([byteArr], {type: mime});
+    var url = URL.createObjectURL(blob);
+    var icon = getFileIcon(filename);
+    var sizeStr = formatBytes(byteArr.length);
+    return '<a class="file-download-card" href="' + url + '" download="' + escH(filename) + '" target="_blank">' +
+           '<span class="file-download-icon">' + icon + '</span>' +
+           '<span class="file-download-info">' +
+           '<span class="file-download-name">' + escH(filename) + '</span>' +
+           '<span class="file-download-meta">⬇️ Klik untuk download &bull; ' + sizeStr + '</span>' +
+           '</span></a>';
+  } catch(e) {
+    return '<span style="color:#ff5555">⚠️ Gagal decode: ' + escH(e.message) + '</span>';
+  }
+}
+
+function renderFinalAnswer(rawText) {
+  // Step 1: Extract semua FILE_EXPORT dari teks mentah (base64 masih bersih, belum kena formatText)
+  var markers = [];
+  var processed = rawText;
+
+  // Strip backtick wrapping dulu: `[FILE_EXPORT:...]` → [FILE_EXPORT:...]
+  processed = processed.replace(/`(\[FILE_EXPORT:[^\n`]+?\])`/g, '$1');
+
+  // Auto-fix: kalau agentFiles punya file dengan nama itu, pakai content yang bener
+  processed = processed.replace(/\[FILE_EXPORT:([^:\n\]]+):[^:\n]*:[^\]\n]*\]/g, function(match, fname) {
+    if (agentFiles[fname] && agentFiles[fname].content) {
+      var c = agentFiles[fname].content;
+      var ext = fname.split('.').pop().toLowerCase();
+      var m2 = ext==='lua'||ext==='lu'?'text/x-lua':ext==='py'?'text/x-python':ext==='js'?'application/javascript':ext==='json'?'application/json':ext==='html'?'text/html':'text/plain';
+      try { return '[FILE_EXPORT:' + fname + ':' + btoa(unescape(encodeURIComponent(c))) + ':' + m2 + ']'; }
+      catch(e) { return match; }
+    }
+    return match;
+  });
+
+  // Extract marker yang multiline juga (base64 bisa ada \n di dalamnya dari LLM)
+  processed = processed.replace(/\[FILE_EXPORT:([^:\]\n]+):([\s\S]+?):([a-zA-Z0-9\/\-+.x]+)\](?!\s*\[)/g, function(match, fname, b64raw, mime) {
+    var b64 = b64raw.replace(/\s/g, ''); // hapus semua whitespace/newline dari base64
+    if (!/^[A-Za-z0-9+/=]+$/.test(b64)) return match; // skip kalau masih ada karakter aneh
+    var placeholder = '\x00FILE_MARKER_' + markers.length + '\x00';
+    markers.push({ placeholder: placeholder, fname: fname.trim(), b64: b64, mime: mime.trim() });
+    return placeholder;
+  });
+
+  // Step 2: Format teks yang sudah bersih dari marker
+  var html = formatText(processed);
+
+  // Step 3: Replace placeholder dengan tombol download yang beneran
+  markers.forEach(function(m) {
+    var btn = _buildDownloadBtn(m.fname, m.b64, m.mime);
+    // Placeholder mungkin sudah kena escaping HTML — coba keduanya
+    html = html.split(escH(m.placeholder)).join(btn);
+    html = html.split(m.placeholder).join(btn);
+  });
+
+  return html;
+}
+
 function renderFileMarkers(text) {
   // Option 1: [FILE_EXPORT:filename:base64data:mimetype]
   // Regex dibuat permissive: base64 boleh mengandung <br>, spasi, newline (hasil formatText)
@@ -1840,29 +1907,12 @@ async function runAgent(userMsg,files){
     var agParsed=parseAiMemoryTags(finalAnswer);
     finalAnswer=agParsed.cleaned;
 
-    // ── AUTO-FIX: Kalau LLM generate FILE_EXPORT manual (base64 salah/kosong),
-    // replace dengan marker yang bener dari agentFiles ──────────────────────
-    finalAnswer=finalAnswer.replace(/\[FILE_EXPORT:([^:\]]+):[^:\]]*:[^\]]*\]/g,function(match,fname){
-      if(agentFiles[fname]&&agentFiles[fname].content){
-        var content=agentFiles[fname].content;
-        var ext=fname.split('.').pop().toLowerCase();
-        var mime=ext==='lua'||ext==='lu'?'text/x-lua':ext==='py'?'text/x-python':ext==='js'?'application/javascript':ext==='json'?'application/json':ext==='html'?'text/html':ext==='zip'?'application/zip':'text/plain';
-        try{var b64=btoa(unescape(encodeURIComponent(content)));return '[FILE_EXPORT:'+fname+':'+b64+':'+mime+']';}
-        catch(e){return match;}
-      }
-      return match;
-    });
-
-    // Strip backtick wrapping yang kadang LLM taruh di sekitar marker
-    // Contoh: `[FILE_EXPORT:...]` → [FILE_EXPORT:...]
-    finalAnswer=finalAnswer.replace(/`(\[FILE_EXPORT:[^\]]+\])`/g,'$1');
-
     updateLastCode(finalAnswer);
 
     var ci=0;var fa_str=finalAnswer;
     function typeNext(){
       if(ci>=fa_str.length){
-        agFinal.innerHTML=formatText(fa_str);
+        agFinal.innerHTML=renderFinalAnswer(fa_str);
         addCopyBtn(bub,fa_str);
         chat.scrollTop=chat.scrollHeight;
         return;
@@ -1877,7 +1927,7 @@ async function runAgent(userMsg,files){
         ci=closePos!==-1?closePos+1:fa_str.length;
         partial=fa_str.slice(0,ci);
       }
-      agFinal.innerHTML=formatText(partial)+'<span class="stream-cursor"></span>';
+      agFinal.innerHTML=renderFinalAnswer(partial)+'<span class="stream-cursor"></span>';
       chat.scrollTop=chat.scrollHeight;
       setTimeout(typeNext,8);
     }
