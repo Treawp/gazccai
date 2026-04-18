@@ -269,7 +269,7 @@ strong{color:var(--txt);font-weight:600}
 
 /* === INPUT BAR === */
 .bar{
-  position:fixed;bottom:0;left:0;right:0;height:70px;
+  position:fixed;bottom:0;left:0;right:0;min-height:70px;height:auto;
   display:flex;align-items:center;gap:8px;padding:10px 12px;
   background:var(--glass2);border-top:1px solid rgba(255,255,255,0.04);
   z-index:999;backdrop-filter:blur(20px);
@@ -278,12 +278,13 @@ strong{color:var(--txt);font-weight:600}
 .attach-btn:active{border-color:var(--cyan)}
 #fileInput{display:none}
 #inp{
-  flex:1;height:46px;background:rgba(0,0,0,0.35);
+  flex:1;min-height:46px;height:auto;background:rgba(0,0,0,0.35);
   border:1px solid var(--brd);border-radius:12px;
-  padding:0 14px;color:var(--txt);
+  padding:10px 14px;color:var(--txt);
   font-family:'JetBrains Mono',monospace;font-size:13px;
   outline:none;-webkit-appearance:none;
   transition:border-color .2s,box-shadow .2s;
+  line-height:1.5;resize:none;overflow-y:hidden;
 }
 #inp:focus{border-color:rgba(0,212,255,0.4);box-shadow:0 0 0 3px rgba(0,212,255,0.06)}
 #inp::placeholder{color:var(--muted)}
@@ -644,7 +645,7 @@ strong{color:var(--txt);font-weight:600}
   <div class="bar">
     <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">📎</button>
     <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.js,.py,.html,.css,.json,.md,.csv,.lua,.ts,.jsx,.tsx,.xml,.yaml,.yml" onchange="handleFiles(this.files)">
-    <textarea id="inp" placeholder="Ketik pesan... (Ctrl+V paste gambar)" autocomplete="off" rows="1" style="resize:none;overflow-y:hidden;min-height:40px;max-height:200px;line-height:1.5;padding-top:10px;padding-bottom:10px;"></textarea>
+    <textarea id="inp" placeholder="Ketik pesan... (Ctrl+V paste gambar)" autocomplete="off" rows="1" style="max-height:200px;"></textarea>
     <div class="bwrap">
       <button id="btn" onclick="send()">&#10148;</button>
       <div class="mbadge" id="mb">0</div>
@@ -1075,6 +1076,7 @@ inp.addEventListener('keydown',function(e){
 inp.addEventListener('input',function(){
   this.style.height='auto';
   this.style.height=Math.min(this.scrollHeight,200)+'px';
+  _fixBarPos();
 });
 
 // === MOBILE KEYBOARD FIX ===
@@ -1088,7 +1090,8 @@ function _fixBarPos(){
   if(bar){bar.style.bottom=offset+'px';bar.style.transition='bottom 0.05s';}
   var ab=document.getElementById('attachBar');
   var chatEl=document.getElementById('chat');
-  var barH=70;
+  var barEl=document.querySelector('.bar');
+  var barH=barEl?barEl.offsetHeight:70;
   var abVisible=ab&&ab.style.display==='flex';
   var abH=abVisible?48:0;
   if(ab){ab.style.bottom=(barH+offset)+'px';}
@@ -1873,18 +1876,22 @@ async function runAgent(userMsg,files){
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
-    var promptParts=[];
-    if(hist&&hist.length){
-      hist.slice(-20).forEach(function(m){
-        var c=typeof m.content==='string'?m.content:'[file]';
-        promptParts.push('['+m.role.toUpperCase()+']:\n'+c);
-      });
-    }
-    promptParts.push('[USER]:\n'+(userMsg||''));
-    var fullPrompt=promptParts.join('\n\n');
-
     var agentModel=document.getElementById('msel').value||'moonshotai/kimi-k2.5';
 
+    // ── Bangun messages array multi-turn (bukan digabung jadi 1 string) ──
+    // Ini biar prompt user tidak kepotong dan context window lebih efisien
+    var messages=[{role:'system',content:AGENT_SYS}];
+
+    // Inject history sebagai multi-turn messages
+    if(hist&&hist.length){
+      hist.slice(-50).forEach(function(m){
+        if(m.role==='system')return;
+        var c=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'[file]');
+        if(c)messages.push({role:m.role,content:c});
+      });
+    }
+
+    // Current user message — TIDAK dipotong, dikirim full
     var userContent=[];
     if(files&&files.length){
       files.forEach(function(f){
@@ -1892,15 +1899,13 @@ async function runAgent(userMsg,files){
         else{try{userContent.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){userContent.push({type:'text',text:'[File: '+f.name+' — binary]'});}}
       });
     }
-    userContent.push({type:'text',text:fullPrompt});
-    var finalUserContent=(userContent.length===1)?fullPrompt:userContent;
-
-    // Gunakan global AGENT_SYS (PLANNER/EXECUTOR/CRITIC) — bukan local override
-    var messages=[{role:'system',content:AGENT_SYS},{role:'user',content:finalUserContent}];
+    userContent.push({type:'text',text:userMsg||''});
+    messages.push({role:'user',content:(userContent.length===1)?(userMsg||''):userContent});
 
     var MAX_TURNS=12;
     var finalAnswer='';
     pendingFileExports=[]; // Reset untuk setiap agent run baru
+    agentFiles={}; saveAgentFiles(); // Reset file storage + localStorage tiap run baru
     var turnCount=0;
 
     // ── ReAct Loop — parse ACTION/INPUT dari output LLM, eksekusi tool nyata ──
