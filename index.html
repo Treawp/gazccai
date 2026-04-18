@@ -1654,9 +1654,9 @@ ATURAN KETAT
 5. "Fix", "tambah", "ubah" = merujuk context sebelumnya
 6. DILARANG menjelaskan cara kerja FILE_EXPORT ke user — EKSEKUSI langsung pakai tools
 7. Task buat/tulis file: WAJIB ACTION: create_file lalu ACTION: get_download. Tidak boleh skip.
-8. JANGAN generate [FILE_EXPORT:...] secara manual — pakai get_download agar base64 pasti benar
+8. MUTLAK DILARANG: menulis [FILE_EXPORT:...] di output kamu — system akan MENOLAK jawaban tersebut. HANYA get_download yang boleh generate marker ini.
 9. Jangan instruksikan user melakukan sesuatu yang bisa kamu kerjakan sendiri dengan tools
-10. Output dari get_download sudah berupa marker final — copy persis ke FINAL ANSWER
+10. Setelah get_download, kamu akan menerima placeholder [DOWNLOAD_N] — tulis placeholder itu PERSIS di FINAL ANSWER.
 
 ═══════════════════════════════════════════════════════════
 TOOLS TERSEDIA
@@ -1842,7 +1842,18 @@ async function runAgent(userMsg,files){
 
       // Cek Final Answer
       var faMatch=llmOut.match(/FINAL ANSWER:\s*([\s\S]+)/i);
-      if(faMatch){finalAnswer=faMatch[1].trim();agLog('✅ Final Answer diterima');break;}
+      if(faMatch){
+        var tentativeFinal=faMatch[1].trim();
+        // Anti-cheat: kalau ada FILE_EXPORT tapi model tidak pakai get_download tool → paksa ulang
+        if(tentativeFinal.indexOf('[FILE_EXPORT:')>=0 && pendingFileExports.length===0){
+          agLog('🚫 Model nulis FILE_EXPORT manual tanpa get_download — paksa pakai tools');
+          messages.push({role:'assistant',content:llmOut});
+          messages.push({role:'user',content:'❌ DITOLAK. Kamu menulis [FILE_EXPORT:...] secara manual. Ini DILARANG karena base64 akan invalid.\n\nWAJIB lakukan ini:\nACTION: create_file\nINPUT: namafile.lua|||[tulis SELURUH konten file di sini]\n\nLalu:\nACTION: get_download\nINPUT: namafile.lua\n\nBaru boleh tulis FINAL ANSWER dengan placeholder yang diberikan.'});
+          showAgentMode('critic',50);
+        } else {
+          finalAnswer=tentativeFinal;agLog('✅ Final Answer diterima');break;
+        }
+      }
 
       // Parse ACTION dan INPUT
       var actionMatch=llmOut.match(/ACTION:\s*([a-zA-Z_]+)/);
@@ -1889,7 +1900,13 @@ async function runAgent(userMsg,files){
       // Guard: kalau llmOut ada text FINAL ANSWER tanpa pattern ketat
       if(llmOut.includes('FINAL ANSWER:')&&!faMatch){
         var raw=llmOut.split('FINAL ANSWER:').slice(1).join('FINAL ANSWER:').trim();
-        if(raw){finalAnswer=raw;agLog('✅ Final Answer (loose parse)');break;}
+        if(raw){
+          if(raw.indexOf('[FILE_EXPORT:')>=0 && pendingFileExports.length===0){
+            agLog('🚫 Loose parse: FILE_EXPORT manual tanpa tools — abaikan');
+          } else {
+            finalAnswer=raw;agLog('✅ Final Answer (loose parse)');break;
+          }
+        }
       }
     }
 
