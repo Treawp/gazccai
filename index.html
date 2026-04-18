@@ -351,7 +351,7 @@ strong{color:var(--txt);font-weight:600}
   background:linear-gradient(90deg,var(--cyan),var(--purple));
   transition:width .3s ease;box-shadow:0 0 10px var(--cyan);
 }
-.agent-badge{position:fixed;top:62px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--pink),var(--purple));color:#fff;font-size:9px;letter-spacing:2px;font-family:'Syne',sans-serif;font-weight:700;padding:4px 16px;border-radius:0 0 12px 12px;z-index:998;animation:fu .3s ease;display:none}
+
 .agent-step{background:rgba(247,37,133,0.04);border:1px solid rgba(247,37,133,0.15);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .agent-step-hdr{display:flex;align-items:center;gap:8px;font-size:9px;font-family:'Syne',sans-serif;letter-spacing:1.5px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
 .step-num{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
@@ -620,7 +620,7 @@ strong{color:var(--txt);font-weight:600}
   <div class="agent-progress" id="agentProgress" style="display:none">
     <div class="agent-progress-bar" id="agentProgressBar"></div>
   </div>
-  <div class="agent-badge" id="agentBadge">⚡ GAZCCTHINKING AGENT AKTIF</div>
+
 
   <div id="chat">
     <div class="welcome" id="wlc">
@@ -1567,8 +1567,8 @@ function downloadAgentFile(name){var f=agentFiles[name];if(!f)return;var blob=ne
 
 function toggleAgent(){
   agentMode=!agentMode;
-  var aBtn=document.getElementById('agentToggle');var badge=document.getElementById('agentBadge');
-  aBtn.classList.toggle('active',agentMode);badge.style.display=agentMode?'block':'none';
+  var aBtn=document.getElementById('agentToggle');
+  aBtn.classList.toggle('active',agentMode);
   document.getElementById('inp').placeholder=agentMode?'Minta GazccThinking agent selesaikan task...':'Ketik pesan... (Ctrl+V paste gambar)';
   if(agentMode) showAgentPopup();
 }
