@@ -734,6 +734,7 @@ function buildContextPrompt(){
   parts.push('- Jawaban harus KONSISTEN dan RELEVAN dengan alur percakapan aktif.]');
   
   // Instruksi simpan memori
+  parts.push('\n[FILE RULE: Jika user minta file untuk download, JANGAN tulis [DOWNLOAD_xxx] atau [FILE_EXPORT:...]. Cukup tulis kode dalam code block — tombol download ⬇️ DL otomatis tersedia.]');
   parts.push('\n[MEMORY SAVING:');
   parts.push('- Simpan info penting user dengan format: [[MEM: key=value]]');
   parts.push('- Contoh: [[MEM: nama_user=Ega]], [[MEM: project_aktif=upang_script]], [[MEM: bahasa=Lua]]');
@@ -1288,6 +1289,34 @@ function renderFileMarkers(text) {
            '</span></a>';
   });
 
+  // Option 3: [DOWNLOAD_filename] — format yang dipakai model saat bingung
+  // Cek agentFiles dulu, kalau tidak ada tampilkan pesan helper
+  text = text.replace(/\[DOWNLOAD_([^\]]+)\]/g, function(match, fname) {
+    fname = fname.trim();
+    // Cek agentFiles (dari GazccThinking)
+    if(typeof agentFiles !== 'undefined' && agentFiles[fname] && agentFiles[fname].content) {
+      var c = agentFiles[fname].content;
+      var ext = fname.split('.').pop().toLowerCase();
+      var mime = ext==='lua'||ext==='lu'?'text/x-lua':ext==='py'?'text/x-python':ext==='js'?'application/javascript':ext==='json'?'application/json':ext==='html'?'text/html':'text/plain';
+      try {
+        var b64 = btoa(unescape(encodeURIComponent(c)));
+        var icon = getFileIcon(fname);
+        var sizeKB = Math.ceil(c.length / 1024) || 1;
+        var byteArr = new Uint8Array(atob(b64).split('').map(function(ch){return ch.charCodeAt(0);}));
+        var blob = new Blob([byteArr], {type: mime});
+        var url = URL.createObjectURL(blob);
+        return '<a class="file-download-card" href="' + url + '" download="' + fname + '" target="_blank">' +
+               '<span class="file-download-icon">' + icon + '</span>' +
+               '<span class="file-download-info">' +
+               '<span class="file-download-name">' + fname + '</span>' +
+               '<span class="file-download-meta">⬇️ Klik untuk download &bull; ' + sizeKB + ' KB</span>' +
+               '</span></a>';
+      } catch(e) { return match; }
+    }
+    // Tidak ada di agentFiles — model tidak buat file via tools, cukup sembunyikan placeholder
+    return '<span style="color:var(--muted);font-size:11px">[⚠️ File ' + escH(fname) + ' tidak tersedia — gunakan mode GazccThinking ⚡]</span>';
+  });
+
   // Option 3 (FALLBACK): Tangkap pola "Base64 Payload:" diikuti blok kode base64
   // AI lama kadang output: [Download: filename](sandbox:/...) lalu Base64 Payload: ...
   text = text.replace(/\[(?:📦\s*)?Download:\s*([^\]]+)\]\(sandbox:[^\)]*\)/g, function(match, fname) {
@@ -1330,8 +1359,11 @@ function formatText(text){
   return renderFileMarkers(parts.map(function(p,i){
     if(i%2===1){
       return p.replace(/```(\w*)\n?([\s\S]*?)```/g,function(m,lang,code){
+        var ext=lang==='python'||lang==='py'?'py':lang==='lua'||lang==='lu'?'lua':lang==='javascript'||lang==='js'?'js':lang==='html'?'html':lang==='json'?'json':lang==='bash'||lang==='sh'?'sh':lang?lang:'txt';
+        var dlBtn=lang?'<button class="code-copy-btn" style="right:68px" onclick="downloadCodeBlock(this,\'code.'+ext+'\')" title="Download file">⬇️ DL</button>':'';
         return '<div class="code-wrap">'+
           '<button class="code-copy-btn" onclick="copyCodeBlock(this)">📋 COPY</button>'+
+          dlBtn+
           (lang?'<div style="color:var(--muted);font-size:10px;padding:4px 10px 0;font-family:\'JetBrains Mono\',monospace">'+escH(lang)+'</div>':'')+
           '<pre><code>'+escH(code.trim())+'</code></pre>'+
           '</div>';
@@ -1367,6 +1399,24 @@ function copyCodeBlock(btnEl){
     btnEl.textContent='✅ COPIED';btnEl.classList.add('copied');
     setTimeout(function(){btnEl.textContent='📋 COPY';btnEl.classList.remove('copied');},1500);
   });
+}
+
+function downloadCodeBlock(btnEl, defaultFilename){
+  var wrap=btnEl.parentElement;
+  var codeEl=wrap?wrap.querySelector('code'):null;
+  var text=codeEl?codeEl.textContent:'';
+  if(!text.trim())return;
+  // Coba deteksi nama file dari context (baris pertama kode atau komentar)
+  var fname=defaultFilename||'code.txt';
+  var firstLine=(text.trim().split('\n')[0]||'').trim();
+  // Cek apakah ada nama file di komentar pertama: # woi_woi.py atau -- script.lua
+  var fnMatch=firstLine.match(/^(?:#|--|\/\/|<!--|<!--)\s*([\w\-\.]+\.[a-z]+)/i);
+  if(fnMatch)fname=fnMatch[1];
+  try{
+    var blob=new Blob([text],{type:'text/plain'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;a.click();
+    btnEl.textContent='✅ OK';setTimeout(function(){btnEl.textContent='⬇️ DL';},1500);
+  }catch(e){btnEl.textContent='❌ ERR';}
 }
 
 // ---- MSG RENDER ----
