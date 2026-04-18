@@ -1890,72 +1890,80 @@ async function runAgent(userMsg,files){
       try{llmOut=await _llmCall(messages,agentModel);}
       catch(e){agLog('LLM error: '+e.message);break;}
 
-      // Cek Final Answer
+      // ── STEP 1: Eksekusi SEMUA tool calls dulu sebelum cek FINAL ANSWER ──
+      // (fix bug: model nulis get_download + FINAL ANSWER di 1 response, dulu tool diskip)
+      var allActions=[];
+      var actionRe=/ACTION:\s*([a-zA-Z_]+)[\s\S]*?INPUT:\s*([\s\S]+?)(?=\nACTION:|\nFINAL ANSWER:|\n\[MODE:|$)/gi;
+      var aMatch;
+      while((aMatch=actionRe.exec(llmOut))!==null){
+        allActions.push({name:aMatch[1].trim(),input:aMatch[2].trim()});
+      }
+      // Fallback: coba tanpa INPUT pair (tool tanpa argumen)
+      if(allActions.length===0){
+        var simpleAct=llmOut.match(/ACTION:\s*([a-zA-Z_]+)/);
+        var simpleIn=llmOut.match(/INPUT:\s*([\s\S]+?)(?=\n\[MODE:|\nFINAL ANSWER:|$)/);
+        if(simpleAct)allActions.push({name:simpleAct[1].trim(),input:simpleIn?simpleIn[1].trim():''});
+      }
+
+      var lastObservations=[];
+      if(allActions.length>0){
+        showAgentMode('executor',Math.min(90,20+turn*10));
+        for(var ai=0;ai<allActions.length;ai++){
+          var toolName=allActions[ai].name;
+          var toolInput=allActions[ai].input;
+          agLog('🔧 Tool: '+toolName+' | Input: '+toolInput.slice(0,60)+(toolInput.length>60?'...':''));
+          var observation='';
+          var tool=AGENT_TOOLS[toolName];
+          if(tool){
+            try{
+              var res2=tool.run(toolInput);
+              if(res2&&typeof res2.then==='function')res2=await res2;
+              observation=String(res2||'(tool returned empty)');
+            }catch(e){observation='Tool error: '+e.message;}
+          } else {
+            observation='Error: tool "'+toolName+'" tidak dikenal.';
+          }
+          if(observation.indexOf('[FILE_EXPORT:')===0){
+            agLog('📦 File marker disimpan');
+            pendingFileExports.push(observation);
+            observation='✅ File siap. Tombol download otomatis muncul di FINAL ANSWER.';
+          }
+          agLog('Obs['+ai+']: '+observation.slice(0,80)+(observation.length>80?'...':''));
+          lastObservations.push('Tool '+toolName+': '+observation);
+        }
+      }
+
+      // ── STEP 2: Setelah semua tool selesai, cek FINAL ANSWER ──
       var faMatch=llmOut.match(/FINAL ANSWER:\s*([\s\S]+)/i);
       if(faMatch){
         var tentativeFinal=faMatch[1].trim();
-        // Anti-cheat: kalau ada FILE_EXPORT tapi model tidak pakai get_download tool → paksa ulang
         if(tentativeFinal.indexOf('[FILE_EXPORT:')>=0 && pendingFileExports.length===0){
-          agLog('🚫 Model nulis FILE_EXPORT manual tanpa get_download — paksa pakai tools');
+          agLog('🚫 FILE_EXPORT manual tanpa tools — paksa ulang');
           messages.push({role:'assistant',content:llmOut});
-          messages.push({role:'user',content:'❌ DITOLAK. Kamu menulis [FILE_EXPORT:...] secara manual. Ini DILARANG karena base64 akan invalid.\n\nWAJIB lakukan ini:\nACTION: create_file\nINPUT: namafile.lua|||[tulis SELURUH konten file di sini]\n\nLalu:\nACTION: get_download\nINPUT: namafile.lua\n\nBaru boleh tulis FINAL ANSWER dengan placeholder yang diberikan.'});
+          messages.push({role:'user',content:'❌ DITOLAK. JANGAN tulis [FILE_EXPORT:...] manual.\nWAJIB:\nACTION: create_file\nINPUT: namafile.ext|||konten\n\nACTION: get_download\nINPUT: namafile.ext\n\nBaru FINAL ANSWER.'});
           showAgentMode('critic',50);
-        } else {
-          finalAnswer=tentativeFinal;agLog('✅ Final Answer diterima');break;
+          continue;
         }
+        finalAnswer=tentativeFinal;agLog('✅ Final Answer diterima');break;
       }
 
-      // Parse ACTION dan INPUT
-      var actionMatch=llmOut.match(/ACTION:\s*([a-zA-Z_]+)/);
-      var inputMatch=llmOut.match(/INPUT:\s*([\s\S]+?)(?=\n\[MODE:|$)/);
-
-      if(actionMatch){
-        var toolName=actionMatch[1].trim();
-        var toolInput=inputMatch?inputMatch[1].trim():'';
-        agLog('🔧 Tool: '+toolName+' | Input: '+toolInput.slice(0,60)+(toolInput.length>60?'...':''));
-        showAgentMode('executor',Math.min(90,20+turn*10));
-
-        var observation='';
-        var tool=AGENT_TOOLS[toolName];
-        if(tool){
-          try{
-            var res2=tool.run(toolInput);
-            // Support async tools (fetch_url, search_web)
-            if(res2&&typeof res2.then==='function')res2=await res2;
-            observation=String(res2||'(tool returned empty)');
-          }catch(e){observation='Tool error: '+e.message;}
-        } else {
-          observation='Error: tool "'+toolName+'" tidak dikenal. Tools tersedia: '+Object.keys(AGENT_TOOLS).join(', ');
-        }
-
-        // Jika tool return FILE_EXPORT marker, simpan dan ganti dengan placeholder sederhana
-        if(observation.indexOf('[FILE_EXPORT:')===0){
-          agLog('📦 File marker disimpan — LLM tidak perlu copy base64');
-          pendingFileExports.push(observation);
-          observation='✅ File berhasil dibuat dan siap didownload. Lanjutkan ke FINAL ANSWER — tombol download akan otomatis muncul, kamu tidak perlu menulis apapun soal download.';
-        }
-
-        agLog('Observation: '+observation.slice(0,80)+(observation.length>80?'...':''));
+      if(allActions.length>0){
         messages.push({role:'assistant',content:llmOut});
-        messages.push({role:'user',content:'Observation: '+observation+'\n\nLanjutkan ke step berikutnya atau output FINAL ANSWER jika sudah selesai.'});
-
-      } else {
-        // LLM nulis penjelasan doang tanpa tool call dan tanpa Final Answer
-        agLog('⚠️ LLM njelasain bukan ngeksekusi — paksa ulang');
+        messages.push({role:'user',content:lastObservations.join('\n')+'\n\nLanjutkan ke FINAL ANSWER jika sudah selesai.'});
+      } else if(!faMatch){
+        // LLM nulis penjelasan doang
+        agLog('⚠️ Tidak ada tool dan tidak ada FINAL ANSWER — paksa eksekusi');
         messages.push({role:'assistant',content:llmOut});
-        messages.push({role:'user',content:'STOP. Jangan menjelaskan kepada saya. EKSEKUSI sekarang.\n\nJika perlu buat file:\nACTION: create_file\nINPUT: namafile.ext|||SELURUH ISI KONTEN DI SINI\n\nLalu:\nACTION: get_download\nINPUT: namafile.ext\n\nJika sudah selesai:\n[MODE: FINAL]\nFINAL ANSWER: [jawaban + marker dari get_download]'});
+        messages.push({role:'user',content:'EKSEKUSI sekarang. Jika buat file:\nACTION: create_file\nINPUT: namafile.ext|||konten\n\nACTION: get_download\nINPUT: namafile.ext\n\nLalu FINAL ANSWER.'});
         showAgentMode('critic',50);
       }
 
-      // Guard: kalau llmOut ada text FINAL ANSWER tanpa pattern ketat
+      // Guard loose parse
       if(llmOut.includes('FINAL ANSWER:')&&!faMatch){
         var raw=llmOut.split('FINAL ANSWER:').slice(1).join('FINAL ANSWER:').trim();
         if(raw){
-          if(raw.indexOf('[FILE_EXPORT:')>=0 && pendingFileExports.length===0){
-            agLog('🚫 Loose parse: FILE_EXPORT manual tanpa tools — abaikan');
-          } else {
-            finalAnswer=raw;agLog('✅ Final Answer (loose parse)');break;
-          }
+          if(raw.indexOf('[FILE_EXPORT:')>=0&&pendingFileExports.length===0){agLog('🚫 Loose: FILE_EXPORT manual');}
+          else{finalAnswer=raw;agLog('✅ Final Answer (loose)');break;}
         }
       }
     }
