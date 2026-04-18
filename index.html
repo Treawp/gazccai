@@ -1179,19 +1179,31 @@ function formatBytes(bytes) {
 
 function renderFileMarkers(text) {
   // Option 1: [FILE_EXPORT:filename:base64data:mimetype]
-  text = text.replace(/\[FILE_EXPORT:([^:]+):([A-Za-z0-9+/=]+):([^\]]+)\]/g, function(match, filename, b64, mime) {
+  // Regex dibuat permissive: base64 boleh mengandung <br>, spasi, newline (hasil formatText)
+  text = text.replace(/\[FILE_EXPORT:([^:\]<\s]+):([\s\S]+?):([a-zA-Z0-9\/\-+.x]+)\]/g, function(match, filename, b64raw, mime) {
     try {
+      // Bersihkan semua noise yang dimasukin formatText ke base64
+      var b64 = b64raw
+        .replace(/<br\s*\/?>/gi, '')   // hapus <br> dari newline replacement
+        .replace(/&amp;/g, '&')        // unescape HTML entities
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/\s/g, '');           // hapus semua whitespace/newline
+      // Validasi: harus base64 chars saja
+      if(!/^[A-Za-z0-9+/=]+$/.test(b64)) throw new Error('Base64 tidak valid setelah clean');
       var byteChars = atob(b64);
       var byteArr = new Uint8Array(byteChars.length);
       for (var i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
-      var blob = new Blob([byteArr], {type: mime});
+      var mimeClean = mime.trim().replace(/<[^>]+>/g,''); // strip html dari mime juga
+      var blob = new Blob([byteArr], {type: mimeClean});
       var url = URL.createObjectURL(blob);
       var icon = getFileIcon(filename);
+      var sizeKB = Math.ceil(byteArr.length / 1024);
       return '<a class="file-download-card" href="' + url + '" download="' + filename + '" target="_blank">' +
              '<span class="file-download-icon">' + icon + '</span>' +
              '<span class="file-download-info">' +
              '<span class="file-download-name">' + filename + '</span>' +
-             '<span class="file-download-meta">⬇️ Klik untuk download &bull; Base64</span>' +
+             '<span class="file-download-meta">⬇️ Klik untuk download &bull; ' + sizeKB + ' KB</span>' +
              '</span></a>';
     } catch(e) {
       return '<span style="color:#ff5555">⚠️ Gagal render file: ' + e.message + '</span>';
@@ -1840,14 +1852,34 @@ async function runAgent(userMsg,files){
       }
       return match;
     });
+
+    // Strip backtick wrapping yang kadang LLM taruh di sekitar marker
+    // Contoh: `[FILE_EXPORT:...]` → [FILE_EXPORT:...]
+    finalAnswer=finalAnswer.replace(/`(\[FILE_EXPORT:[^\]]+\])`/g,'$1');
+
     updateLastCode(finalAnswer);
 
     var ci=0;var fa_str=finalAnswer;
     function typeNext(){
-      if(ci>=fa_str.length){agFinal.innerHTML=formatText(fa_str);addCopyBtn(bub,fa_str);chat.scrollTop=chat.scrollHeight;return;}
-      ci=Math.min(ci+5,fa_str.length);
-      agFinal.innerHTML=formatText(fa_str.slice(0,ci))+'<span class="stream-cursor"></span>';
-      chat.scrollTop=chat.scrollHeight;setTimeout(typeNext,10);
+      if(ci>=fa_str.length){
+        agFinal.innerHTML=formatText(fa_str);
+        addCopyBtn(bub,fa_str);
+        chat.scrollTop=chat.scrollHeight;
+        return;
+      }
+      ci=Math.min(ci+8,fa_str.length);
+      // Kalau posisi ci di tengah-tengah FILE_EXPORT marker, skip sampai marker selesai
+      var partial=fa_str.slice(0,ci);
+      var openMarker=partial.lastIndexOf('[FILE_EXPORT:');
+      if(openMarker!==-1&&partial.indexOf(']',openMarker)===-1){
+        // Marker belum tutup — langsung loncat ke penutup ]
+        var closePos=fa_str.indexOf(']',openMarker);
+        ci=closePos!==-1?closePos+1:fa_str.length;
+        partial=fa_str.slice(0,ci);
+      }
+      agFinal.innerHTML=formatText(partial)+'<span class="stream-cursor"></span>';
+      chat.scrollTop=chat.scrollHeight;
+      setTimeout(typeNext,8);
     }
     typeNext();
 
