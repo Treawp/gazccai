@@ -596,17 +596,22 @@ strong{color:var(--txt);font-weight:600}
     <div class="bot-title" id="headerTitle">GazccAI</div>
     <div class="mwrap">
       <select id="msel">
-        <optgroup label="── OpenRouter Models ──">
-          <option value="moonshotai/kimi-k2.5">Kimi K2.5</option>
-          <option value="minimax/minimax-m2.5:free">MiniMax M2.5 (Free)</option>
-          <option value="nvidia/nemotron-3-super-120b-a12b:free">Nemotron 120B (Free)</option>
-          <option value="deepseek">deepseek v2</option>
-          <option value="spotify/download">spotify download</option>
-          <option value="gpt-4o-mini">GPT-4o Mini ⚡</option>
-          <option value="claude-sonnet">Claude Sonnet 🧠</option>
-          <option value="gemini-pro">Gemini Pro 🔮</option>
-          <option value="deepseek-v3">DeepSeek V3 💻</option>
-          <option value="llama-3.3-70b">Llama 3.3 70B 🦙</option>
+        <optgroup label="── Vision Support 👁 ──">
+          <option value="moonshotai/kimi-k2.5" data-vision="1">Kimi K2.5 👁</option>
+          <option value="google/gemini-2.0-flash-001" data-vision="1">Gemini 2.0 Flash 👁</option>
+          <option value="google/gemini-flash-1.5" data-vision="1">Gemini 1.5 Flash 👁⚡</option>
+          <option value="openai/gpt-4o-mini" data-vision="1">GPT-4o Mini 👁⚡</option>
+          <option value="openai/gpt-4o" data-vision="1">GPT-4o 👁</option>
+          <option value="anthropic/claude-sonnet-4-5" data-vision="1">Claude Sonnet 4.5 👁</option>
+          <option value="anthropic/claude-3-5-haiku" data-vision="1">Claude Haiku 3.5 👁⚡</option>
+        </optgroup>
+        <optgroup label="── Text Only ──">
+          <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (Free) 💻</option>
+          <option value="deepseek/deepseek-r1:free">DeepSeek R1 (Free) 🧠</option>
+          <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free) 🦙</option>
+          <option value="nvidia/llama-3.1-nemotron-ultra-253b-v1:free">Nemotron 253B (Free)</option>
+          <option value="mistralai/mistral-nemo:free">Mistral Nemo (Free)</option>
+          <option value="minimax/minimax-m1">MiniMax M1</option>
         </optgroup>
       </select>
     </div>
@@ -1485,16 +1490,6 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    // Build full prompt dari messages
-    var promptParts=[];
-    var sysM=messages.find(function(m){return m.role==='system';});
-    if(sysM)promptParts.push('[SYSTEM]:\n'+sysM.content);
-    messages.filter(function(m){return m.role!=='system';}).forEach(function(m){
-      var c=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'');
-      promptParts.push('['+m.role.toUpperCase()+']:\n'+c);
-    });
-    var fullPrompt=promptParts.join('\n\n');
-
     var selectedModel=model||document.getElementById('msel').value||'moonshotai/kimi-k2.5';
     // Tampilkan indikator proses AI
     showAgentMode('generating', 15);
@@ -1509,7 +1504,20 @@ async function sendStream(messages,model){
         }
         contBadge.textContent='🔄 Melanjutkan output... ('+round+'/'+max+')';
       });
-    }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ OpenRouter error: '+e.message+'</div>';hideAgentMode();return null;}
+    }catch(e){
+      var emsg=e.message||String(e);
+      var ehtml='<div style="color:#ff5555;font-size:12px;line-height:1.6">⚠️ <b>Error:</b> '+escH(emsg);
+      if(emsg.indexOf('401')>=0||emsg.toLowerCase().indexOf('invalid api key')>=0)
+        ehtml+='<br>🔑 API Key tidak valid — cek di ⚙️ Settings.';
+      else if(emsg.indexOf('402')>=0||emsg.toLowerCase().indexOf('credit')>=0)
+        ehtml+='<br>💳 Kredit habis — top up di openrouter.ai/credits.';
+      else if(emsg.indexOf('429')>=0)
+        ehtml+='<br>⏳ Rate limit — tunggu sebentar lalu coba lagi.';
+      else if(emsg.toLowerCase().indexOf('image')>=0||emsg.indexOf('vision')>=0||emsg.indexOf('multimodal')>=0)
+        ehtml+='<br>👁 Model ini tidak support gambar — pilih model dengan label 👁.';
+      ehtml+='</div>';
+      bub.innerHTML=ehtml;hideAgentMode();return null;
+    }
 
     // ── Parse <think> sebelum typewriter ──────────────────────────────────
     var rawThink=replyText.match(/^<think>([\s\S]*?)<\/think>([\s\S]*)$/);
@@ -2278,6 +2286,24 @@ async function send(){
   if(agentMode){await runAgent(t,files);_saveCurrentHist();btn.disabled=false;inp.focus();return;}
 
   var content=[];
+  var hasImages=files.some(function(f){return f.isImg;});
+  // ── Vision guard: cek apakah model selected support gambar ────────────────
+  if(hasImages){
+    var selOpt=document.getElementById('msel');
+    var selOption=selOpt&&selOpt.options[selOpt.selectedIndex];
+    var supportsVision=selOption&&selOption.getAttribute('data-vision')==='1';
+    if(!supportsVision){
+      var modelName=selOption?selOption.text:'model ini';
+      // Tampilkan warning bubble
+      var warnWrap=document.createElement('div');warnWrap.className='msg bot';
+      var warnBub=document.createElement('div');warnBub.className='bubble';
+      warnBub.style.cssText='border-left:2px solid #ff9f1c;color:#ff9f1c;font-size:12px;';
+      warnBub.innerHTML='⚠️ <b>'+modelName+'</b> tidak support gambar (tidak ada 👁).<br>Ganti ke model dengan label 👁 untuk kirim gambar.';
+      warnWrap.appendChild(warnBub);chat.appendChild(warnWrap);
+      chat.scrollTop=chat.scrollHeight;
+      btn.disabled=false;inp.focus();return;
+    }
+  }
   files.forEach(function(f){
     if(f.isImg){content.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}
     else{try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' — binary]'});}}
