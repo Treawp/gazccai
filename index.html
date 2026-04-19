@@ -597,7 +597,7 @@ strong{color:var(--txt);font-weight:600}
     <div class="mwrap">
       <select id="msel">
         <optgroup label="── Qwen3 (Free) ──">
-          <option value="qwen/qwen3-235b-a22b:free" selected>Qwen3 235B Flash (Free) ⚡</option>
+          <option value="qwen/qwen3.5-flash-02-23" selected>Qwen3 235B Flash (Free) ⚡</option>
           <option value="qwen/qwen3-30b-a3b:free">Qwen3 30B Flash (Free) ⚡</option>
           <option value="qwen/qwq-32b:free">QwQ 32B (Free) 🧠</option>
         </optgroup>
@@ -1495,7 +1495,7 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    var selectedModel=model||document.getElementById('msel').value||'qwen/qwen3-235b-a22b:free';
+    var selectedModel=model||document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23';
     // Tampilkan indikator proses AI
     showAgentMode('generating', 15);
     var contBadge=null;
@@ -1688,7 +1688,7 @@ var AGENT_TOOLS={
       var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
         method:'POST',
         headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:document.getElementById('msel').value||'qwen/qwen3-235b-a22b:free',messages:[{role:'user',content:imgContent}],max_tokens:2000})
+        body:JSON.stringify({model:document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23',messages:[{role:'user',content:imgContent}],max_tokens:2000})
       });
       var vData=await vRes.json();
       if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
@@ -2022,7 +2022,7 @@ async function runAgent(userMsg,files){
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
-    var agentModel=document.getElementById('msel').value||'qwen/qwen3-235b-a22b:free';
+    var agentModel=document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23';
 
     // ── Bangun messages array multi-turn (bukan digabung jadi 1 string) ──
     // Ini biar prompt user tidak kepotong dan context window lebih efisien
