@@ -596,6 +596,11 @@ strong{color:var(--txt);font-weight:600}
     <div class="bot-title" id="headerTitle">GazccAI</div>
     <div class="mwrap">
       <select id="msel">
+        <optgroup label="── Qwen3 (Free) ──">
+          <option value="qwen/qwen3-235b-a22b:free" selected>Qwen3 235B Flash (Free) ⚡</option>
+          <option value="qwen/qwen3-30b-a3b:free">Qwen3 30B Flash (Free) ⚡</option>
+          <option value="qwen/qwq-32b:free">QwQ 32B (Free) 🧠</option>
+        </optgroup>
         <optgroup label="── Vision Support 👁 ──">
           <option value="moonshotai/kimi-k2.5" data-vision="1">Kimi K2.5 👁</option>
           <option value="google/gemini-2.0-flash-001" data-vision="1">Gemini 2.0 Flash 👁</option>
@@ -1490,7 +1495,7 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    var selectedModel=model||document.getElementById('msel').value||'moonshotai/kimi-k2.5';
+    var selectedModel=model||document.getElementById('msel').value||'qwen/qwen3-235b-a22b:free';
     // Tampilkan indikator proses AI
     showAgentMode('generating', 15);
     var contBadge=null;
@@ -1683,7 +1688,7 @@ var AGENT_TOOLS={
       var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
         method:'POST',
         headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:document.getElementById('msel').value||'moonshotai/kimi-k2.5',messages:[{role:'user',content:imgContent}],max_tokens:2000})
+        body:JSON.stringify({model:document.getElementById('msel').value||'qwen/qwen3-235b-a22b:free',messages:[{role:'user',content:imgContent}],max_tokens:2000})
       });
       var vData=await vRes.json();
       if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
@@ -1782,11 +1787,15 @@ ATURAN KETAT
 4. Code WAJIB divalidasi sebelum deliver
 5. "Fix", "tambah", "ubah" = merujuk context sebelumnya
 6. DILARANG menjelaskan cara kerja FILE_EXPORT ke user — EKSEKUSI langsung pakai tools
-7. Task buat/tulis file: WAJIB ACTION: create_file lalu ACTION: get_download. Tidak boleh skip.
+7. [KEYWORD: FILE] create_file + get_download HANYA jika pesan user mengandung: "buatkan file", "buat file", "tulis file", "simpan file", "download", "save file", "generate file". Jika TIDAK ada keyword tersebut → DILARANG pakai create_file, langsung jawab di FINAL ANSWER.
 8. MUTLAK DILARANG: menulis [FILE_EXPORT:...] di output kamu — system akan MENOLAK jawaban tersebut. HANYA get_download yang boleh generate marker ini.
 9. Jangan instruksikan user melakukan sesuatu yang bisa kamu kerjakan sendiri dengan tools
 10. Setelah get_download berhasil, langsung tulis FINAL ANSWER biasa — tombol download akan otomatis muncul tanpa perlu kamu tulis format apapun.
 11. GAMBAR TERLAMPIR: Jika ada notifikasi "[GAMBAR TERLAMPIR]" di pesan user, WAJIB gunakan ACTION: analyze_image di turn pertama sebelum melanjutkan task lain.
+12. [KEYWORD: WEB] Jika pesan user mengandung: "masuk web", "buka web", "cari di web", "fetch", "analisis web ini", "lihat url" → WAJIB gunakan ACTION: fetch_url atau ACTION: search_web.
+13. [KEYWORD: ANALISIS GAMBAR] Jika pesan user mengandung: "analisis gambar", "lihat gambar", "apa di gambar" → WAJIB ACTION: analyze_image.
+14. [KEYWORD: INFO/REKOMENDASI] Jika pesan user bertanya/minta rekomendasi (kata: "rekomendasi", "rekomen", "bagus", "terbaik", "pilih", "mana yang", "apa yang", "apakah", "gimana", "cara", "jelaskan") → LANGSUNG ke FINAL ANSWER. DILARANG buat file apapun.
+15. [MODE HINT] System akan inject [MODE_HINT: ...] di pesan user — WAJIB ikuti hint tersebut.
 
 ═══════════════════════════════════════════════════════════
 TOOLS TERSEDIA
@@ -1862,6 +1871,24 @@ File siap didownload. 🎉
 `;
 
 // NOTE: AGENT_SYS updated to GazccAgent Pro v2 with full PLANNER/EXECUTOR/CRITIC cycle
+
+// ── Keyword-based task mode detector ─────────────────────────────────────────
+function detectTaskMode(msg){
+  var m=(msg||'').toLowerCase();
+  var fileKw=['buatkan file','buat file','tulis file','simpan file','download file','save file','generate file','bikin file','create file','write file','buatin file'];
+  for(var i=0;i<fileKw.length;i++) if(m.indexOf(fileKw[i])>=0) return 'FILE';
+  var webKw=['masuk web','buka web','cari di web','fetch url','analisis web','lihat url','scrape','web scraping','search web','cari web'];
+  for(var i=0;i<webKw.length;i++) if(m.indexOf(webKw[i])>=0) return 'WEB';
+  var imgKw=['analisis gambar','lihat gambar','apa di gambar','analyze image','deskripsikan gambar','apa isi gambar'];
+  for(var i=0;i<imgKw.length;i++) if(m.indexOf(imgKw[i])>=0) return 'IMAGE';
+  return 'INFO';
+}
+function getModeHint(mode){
+  if(mode==='FILE') return '\n\n[MODE_HINT: USER MINTA FILE — gunakan create_file lalu get_download.]';
+  if(mode==='WEB')  return '\n\n[MODE_HINT: USER MINTA WEB — gunakan fetch_url atau search_web. JANGAN buat file.]';
+  if(mode==='IMAGE')return '\n\n[MODE_HINT: USER MINTA ANALISIS GAMBAR — gunakan analyze_image. JANGAN buat file.]';
+  return '\n\n[MODE_HINT: INFO/REKOMENDASI — jawab langsung di FINAL ANSWER. DILARANG KERAS pakai create_file. Cukup teks biasa.]';
+}
 
 
 // ---- AGENT MODE INDICATOR ----
@@ -1981,7 +2008,7 @@ async function runAgent(userMsg,files){
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
-    var agentModel=document.getElementById('msel').value||'moonshotai/kimi-k2.5';
+    var agentModel=document.getElementById('msel').value||'qwen/qwen3-235b-a22b:free';
 
     // ── Bangun messages array multi-turn (bukan digabung jadi 1 string) ──
     // Ini biar prompt user tidak kepotong dan context window lebih efisien
@@ -2004,8 +2031,12 @@ async function runAgent(userMsg,files){
         else{try{userContent.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){userContent.push({type:'text',text:'[File: '+f.name+' — binary]'});}}
       });
     }
-    userContent.push({type:'text',text:userMsg||''});
-    messages.push({role:'user',content:(userContent.length===1)?(userMsg||''):userContent});
+    // ── Keyword mode detection & hint injection ──
+    var _taskMode=detectTaskMode(userMsg);
+    var _modeHint=getModeHint(_taskMode);
+    var _userMsgHinted=(userMsg||'')+_modeHint;
+    userContent.push({type:'text',text:_userMsgHinted});
+    messages.push({role:'user',content:(userContent.length===1)?_userMsgHinted:userContent});
 
     var MAX_TURNS=12;
     var finalAnswer='';
