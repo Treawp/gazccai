@@ -1827,6 +1827,20 @@ get_download   - Generate download button (namafile) — WAJIB setelah create/wr
 shell_exec     - Execute shell command
 timer_set      - Set timer/reminder
 process_list   - List processes
+sqlite         - Query/execute SQL on SQLite database (action: query/execute/tables/schema, db_path, sql)
+data_viz       - Generate chart PNG (chart_type: bar/line/pie/scatter, labels, values, title, output_path)
+token_counter  - Count tokens in text (text, model)
+screenshot     - Screenshot a webpage URL to PNG (url, output_path)
+whois          - WHOIS domain lookup (domain)
+dns_lookup     - DNS record lookup (domain, record_type: A/MX/TXT/CNAME/NS)
+url_meta       - Extract OG/meta tags from URL (url)
+md_to_html     - Convert Markdown to HTML (markdown, full_page, output_path)
+html_to_md     - Convert HTML to Markdown (html or url, output_path)
+ocr            - Extract text from image file (image_path, lang)
+image_resize   - Resize/crop/rotate image (image_path, action, width, height, output_path)
+git            - Git operations (action: init/status/add/commit/log/diff/branch/pull/push, path, args)
+weather        - Current weather + forecast (city or lat/lon, forecast_days)
+cron_scheduler - Schedule recurring tasks (action: add/list/remove/due/clear, task, interval_minutes)
 
 ═══════════════════════════════════════════════════════════
 CONTOH ALUR BENAR
