@@ -1248,7 +1248,7 @@ function renderFinalAnswer(rawText) {
   });
 
   // Extract marker yang multiline juga (base64 bisa ada \n di dalamnya dari LLM)
-  processed = processed.replace(/\[FILE_EXPORT:([^:\]\n]+):([A-Za-z0-9+\/=\s]+):([a-zA-Z0-9\/\-+.x]+)\]/g, function(match, fname, b64raw, mime) {
+  processed = processed.replace(/\[FILE_EXPORT:([^:\]\n]+):([\s\S]+?):([a-zA-Z0-9\/\-+.x]+)\](?!\s*\[)/g, function(match, fname, b64raw, mime) {
     var b64 = b64raw.replace(/\s/g, ''); // hapus semua whitespace/newline dari base64
     if (!/^[A-Za-z0-9+/=]+$/.test(b64)) return match; // skip kalau masih ada karakter aneh
     var placeholder = '\x00FILE_MARKER_' + markers.length + '\x00';
@@ -1716,75 +1716,7 @@ var AGENT_TOOLS={
   delete_file:{desc:'Hapus file. Input: namafile',run:function(input){var name=input.trim();if(!agentFiles[name])return 'Error: file tidak ditemukan';delete agentFiles[name];saveAgentFiles();return 'File "'+name+'" dihapus';}},
   save_ai_memory:{desc:'Simpan ke AI Memory. Input: key=value',run:function(input){var idx=input.indexOf('=');if(idx<0)return 'Error: format key=value';var k=input.slice(0,idx).trim(),v=input.slice(idx+1).trim();aiMemory[k]=v;saveAiMemory();updateMemBadge();return 'AI Memory: '+k+' = '+v;}},
   write_file:{desc:'Alias create_file. Input: nama.ext|||konten',run:function(input){var idx=input.indexOf('|||');if(idx<0)return 'Error: format nama.ext|||konten';var name=input.slice(0,idx).trim(),content=input.slice(idx+3);agentFiles[name]={name:name,content:content,created:new Date().toISOString()};saveAgentFiles();return 'File "'+name+'" ditulis ('+content.length+' chars)';}},
-  get_download:{desc:'Generate tombol download untuk file yg sudah dibuat. Input: namafile',run:function(input){var name=input.trim();if(!agentFiles[name])return 'Error: file "'+name+'" tidak ditemukan. Buat dulu pakai create_file.';var content=agentFiles[name].content;var ext=name.split('.').pop().toLowerCase();var mime=ext==='lua'||ext==='lu'?'text/x-lua':ext==='py'?'text/x-python':ext==='js'?'application/javascript':ext==='json'?'application/json':ext==='html'?'text/html':ext==='zip'?'application/zip':'text/plain';try{var b64=btoa(unescape(encodeURIComponent(content)));return '[FILE_EXPORT:'+name+':'+b64+':'+mime+']';}catch(e){return 'Error encode base64: '+e.message;}}},
-  deep_reason:{desc:'Analisis mendalam & grounded — anti-halu. Input: pertanyaan/tugas. Gunakan sebelum menjawab hal teknis kompleks, klaim faktual, atau saat confidence rendah.',run:function(input){
-    var q=input.trim();
-    if(!q) return 'Error: input kosong';
-    var key=agentApiKey||localStorage.getItem('or_key')||'';
-    if(!key) return 'Error: API key tidak ditemukan';
-    var result='[Menjalankan deep_reason...]';
-    var xhr=new XMLHttpRequest();
-    xhr.open('POST','https://openrouter.ai/api/v1/chat/completions',false);
-    xhr.setRequestHeader('Content-Type','application/json');
-    xhr.setRequestHeader('Authorization','Bearer '+key);
-    xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
-    xhr.setRequestHeader('X-Title','GazccDeepReason');
-    var body=JSON.stringify({
-      model: agentModel||'qwen/qwen3-235b-a22b',
-      messages:[
-        {role:'system',content:'Kamu adalah analytical engine yang SANGAT AKURAT dan grounded. Aturan MUTLAK:\n1. HANYA nyatakan hal yang kamu YAKIN benar — kalau ragu, katakan "Aku tidak yakin tentang X"\n2. JANGAN mengarang data, angka, atau fakta\n3. Gunakan reasoning step-by-step yang eksplisit\n4. Pisahkan FAKTA vs ASUMSI vs OPINI dengan jelas\n5. Output format: [ANALYSIS] → [FACTS] → [REASONING] → [CONCLUSION]\n6. Jika pertanyaan ambigu, nyatakan ambiguitas dan beri jawaban untuk tiap interpretasi'},
-        {role:'user',content:q}
-      ],
-      max_tokens:2000,
-      temperature:0.05
-    });
-    try{
-      xhr.send(body);
-      if(xhr.status===200){
-        var data=JSON.parse(xhr.responseText);
-        result=data.choices[0].message.content;
-      } else {
-        result='Error '+xhr.status+': '+xhr.responseText.substring(0,200);
-      }
-    }catch(e){result='Exception: '+e.message;}
-    return result;
-  }},
-  claude_reason:{desc:'Deep reasoning pakai Claude AI (Opus-level). Input: pertanyaan/tugas kompleks yang butuh analisis tingkat tinggi.',run:function(input){
-    var q=input.trim();
-    if(!q) return 'Error: input kosong';
-    var key=agentApiKey||localStorage.getItem('or_key')||'';
-    if(!key) return 'Error: API key tidak ditemukan. Tambahkan OpenRouter API key di Settings.';
-    var xhr=new XMLHttpRequest();
-    xhr.open('POST','https://openrouter.ai/api/v1/chat/completions',false);
-    xhr.setRequestHeader('Content-Type','application/json');
-    xhr.setRequestHeader('Authorization','Bearer '+key);
-    xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
-    xhr.setRequestHeader('X-Title','GazccClaudeReason');
-    var body=JSON.stringify({
-      model:'anthropic/claude-opus-4-5',
-      messages:[
-        {role:'system',content:'You are Claude, an AI assistant by Anthropic known for exceptional reasoning, honesty, and accuracy. Always think step by step. Never hallucinate facts. If uncertain, explicitly state your uncertainty. Provide thorough, nuanced analysis.'},
-        {role:'user',content:q}
-      ],
-      max_tokens:3000,
-      temperature:0.1
-    });
-    var result='';
-    try{
-      xhr.send(body);
-      if(xhr.status===200){
-        var data=JSON.parse(xhr.responseText);
-        result='[Claude claude-opus-4-5 Response]\n\n'+data.choices[0].message.content;
-      } else if(xhr.status===402||xhr.status===429){
-        result='Error: Kredit OpenRouter habis atau rate limit. Top up di openrouter.ai/credits';
-      } else if(xhr.status===401){
-        result='Error: API key invalid. Ganti di Settings.';
-      } else {
-        result='Error '+xhr.status+': '+xhr.responseText.substring(0,300);
-      }
-    }catch(e){result='Exception: '+e.message;}
-    return result;
-  }}
+  get_download:{desc:'Generate tombol download untuk file yg sudah dibuat. Input: namafile',run:function(input){var name=input.trim();if(!agentFiles[name])return 'Error: file "'+name+'" tidak ditemukan. Buat dulu pakai create_file.';var content=agentFiles[name].content;var ext=name.split('.').pop().toLowerCase();var mime=ext==='lua'||ext==='lu'?'text/x-lua':ext==='py'?'text/x-python':ext==='js'?'application/javascript':ext==='json'?'application/json':ext==='html'?'text/html':ext==='zip'?'application/zip':'text/plain';try{var b64=btoa(unescape(encodeURIComponent(content)));return '[FILE_EXPORT:'+name+':'+b64+':'+mime+']';}catch(e){return 'Error encode base64: '+e.message;}}}
 };
 
 var AGENT_SYS=`Kamu adalah GazccAgent Pro — AI agent autonomous dengan 3 persona internal:
@@ -1864,9 +1796,6 @@ ATURAN KETAT
 13. [KEYWORD: ANALISIS GAMBAR] Jika pesan user mengandung: "analisis gambar", "lihat gambar", "apa di gambar" → WAJIB ACTION: analyze_image.
 14. [KEYWORD: INFO/REKOMENDASI] Jika pesan user bertanya/minta rekomendasi (kata: "rekomendasi", "rekomen", "bagus", "terbaik", "pilih", "mana yang", "apa yang", "apakah", "gimana", "cara", "jelaskan") → LANGSUNG ke FINAL ANSWER. DILARANG buat file apapun.
 15. [MODE HINT] System akan inject [MODE_HINT: ...] di pesan user — WAJIB ikuti hint tersebut.
-16. ANTI-HALUSINASI: JANGAN PERNAH menulis raw base64 atau data binary di output/FINAL ANSWER. Jika perlu kirim file, WAJIB pakai create_file + get_download. Raw base64 di output = bug fatal.
-17. ANTI-HALUSINASI: Jangan karang fakta, angka, atau klaim teknis yang tidak kamu yakin. Jika ragu, gunakan ACTION: deep_reason untuk verifikasi sebelum menjawab.
-18. GROUNDING: Untuk task yang butuh keakuratan tinggi (analisis teknis, debugging, arsitektur), WAJIB gunakan ACTION: deep_reason atau ACTION: claude_reason di awal sebelum FINAL ANSWER.
 
 ═══════════════════════════════════════════════════════════
 TOOLS TERSEDIA
@@ -1895,8 +1824,6 @@ append_file    - Append to file
 list_files     - List files
 delete_file    - Delete file
 get_download   - Generate download button (namafile) — WAJIB setelah create/write file agar user bisa download
-deep_reason    - Analisis grounded anti-halu, reasoning step-by-step. Input: pertanyaan/klaim yang perlu diverifikasi
-claude_reason  - Deep reasoning pakai Claude AI (Opus-level). Input: task kompleks yang butuh analisis tingkat tinggi
 shell_exec     - Execute shell command
 timer_set      - Set timer/reminder
 process_list   - List processes
@@ -2243,8 +2170,6 @@ async function runAgent(userMsg,files){
       var faMatch=llmOut.match(/FINAL ANSWER:\s*([\s\S]+)/i);
       if(faMatch){
         var tentativeFinal=faMatch[1].trim();
-        // Guard: reject raw base64 dump in final answer
-        if(/[A-Za-z0-9+\/]{500,}/.test(tentativeFinal.replace(/[FILE_EXPORT:[^]]+]/g,''))){agLog('🚫 Raw base64 di FINAL ANSWER — paksa ulang');messages.push({role:'assistant',content:llmOut});messages.push({role:'user',content:'❌ DITOLAK. JANGAN tulis raw base64 di FINAL ANSWER. Gunakan create_file + get_download untuk kirim file.'});showAgentMode('critic',40);continue;}
         if(tentativeFinal.indexOf('[FILE_EXPORT:')>=0 && pendingFileExports.length===0){
           agLog('🚫 FILE_EXPORT manual tanpa tools — paksa ulang');
           messages.push({role:'assistant',content:llmOut});
