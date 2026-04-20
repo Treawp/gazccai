@@ -602,6 +602,9 @@ strong{color:var(--txt);font-weight:600}
           <option value="qwen/qwq-32b:free">QwQ 32B (Free) 🧠</option>
         </optgroup>
         <optgroup label="── Vision Support 👁 ──">
+          <option value="google/gemini-2.5-flash-lite" data-vision="1">Gemini 2.5 Flash Lite 👁⚡</option>
+          <option value="qwen/qwen2.5-vl-7b-instruct:free" data-vision="1">Qwen2.5 VL 7B (Free) 👁</option>
+          <option value="qwen/qwen2.5-vl-72b-instruct:free" data-vision="1">Qwen2.5 VL 72B (Free) 👁</option>
           <option value="moonshotai/kimi-k2.5" data-vision="1">Kimi K2.5 👁</option>
           <option value="google/gemini-2.0-flash-001" data-vision="1">Gemini 2.0 Flash 👁</option>
           <option value="google/gemini-flash-1.5" data-vision="1">Gemini 1.5 Flash 👁⚡</option>
@@ -1685,10 +1688,18 @@ var AGENT_TOOLS={
     var imgContent=_agentCurrentImages.map(function(f){return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};});
     imgContent.push({type:'text',text:input&&input.trim()?input.trim():'Analisis gambar ini secara lengkap dan detail. Jelaskan semua yang kamu lihat.'});
     try{
-      var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      var _visionFallbacks=['google/gemini-2.5-flash-lite','google/gemini-flash-1.5','openai/gpt-4o-mini'];
+    var _selForVision=document.getElementById('msel');
+    var _visionModelToUse=_visionFallbacks[0];
+    if(_selForVision){
+      var _curOpt=_selForVision.options[_selForVision.selectedIndex];
+      if(_curOpt&&_curOpt.getAttribute('data-vision')==='1'){_visionModelToUse=_selForVision.value;}
+      else{for(var _vi=0;_vi<_selForVision.options.length;_vi++){if(_selForVision.options[_vi].getAttribute('data-vision')==='1'){_visionModelToUse=_selForVision.options[_vi].value;break;}}}
+    }
+    var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
         method:'POST',
         headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23',messages:[{role:'user',content:imgContent}],max_tokens:2000})
+        body:JSON.stringify({model:_visionModelToUse,messages:[{role:'user',content:imgContent}],max_tokens:800})
       });
       var vData=await vRes.json();
       if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
@@ -2407,28 +2418,60 @@ async function send(){
 
   var content=[];
   var hasImages=files.some(function(f){return f.isImg;});
-  // ── Vision guard: cek apakah model selected support gambar ────────────────
+
+  // Helper: cari vision model tersedia
+  function getVisionModel(){
+    var FB=['google/gemini-2.5-flash-lite','google/gemini-flash-1.5','openai/gpt-4o-mini'];
+    var sel=document.getElementById('msel');
+    if(sel){
+      var cur=sel.options[sel.selectedIndex];
+      if(cur&&cur.getAttribute('data-vision')==='1')return sel.value;
+      for(var i=0;i<sel.options.length;i++){if(sel.options[i].getAttribute('data-vision')==='1')return sel.options[i].value;}
+    }
+    return FB[0];
+  }
+
+  // Vision routing: auto-fallback kalau model gak support gambar
   if(hasImages){
     var selOpt=document.getElementById('msel');
     var selOption=selOpt&&selOpt.options[selOpt.selectedIndex];
     var supportsVision=selOption&&selOption.getAttribute('data-vision')==='1';
     if(!supportsVision){
-      var modelName=selOption?selOption.text:'model ini';
-      // Tampilkan warning bubble
-      var warnWrap=document.createElement('div');warnWrap.className='msg bot';
-      var warnBub=document.createElement('div');warnBub.className='bubble';
-      warnBub.style.cssText='border-left:2px solid #ff9f1c;color:#ff9f1c;font-size:12px;';
-      warnBub.innerHTML='⚠️ <b>'+modelName+'</b> tidak support gambar (tidak ada 👁).<br>Ganti ke model dengan label 👁 untuk kirim gambar.';
-      warnWrap.appendChild(warnBub);chat.appendChild(warnWrap);
-      chat.scrollTop=chat.scrollHeight;
-      btn.disabled=false;inp.focus();return;
+      // Auto-analyze image pakai vision model, inject hasil ke teks
+      var vModel=getVisionModel();
+      var imgParts=files.filter(function(f){return f.isImg;}).map(function(f){
+        return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};
+      });
+      imgParts.push({type:'text',text:t?'Pertanyaan user: '+t+'\nDeskripsikan gambar secara detail dan jawab pertanyaan user.':'Deskripsikan semua isi gambar ini secara lengkap dan detail.'});
+      try{
+        var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+          method:'POST',
+          headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
+          body:JSON.stringify({model:vModel,messages:[{role:'user',content:imgParts}],max_tokens:800})
+        });
+        var vData=await vRes.json();
+        var vResult=(vData.choices&&vData.choices[0]&&vData.choices[0].message&&vData.choices[0].message.content)||'';
+        if(vResult)content.push({type:'text',text:'[Analisis Gambar via '+vModel+']:\n'+vResult});
+        else if(vData.error)content.push({type:'text',text:'[Vision error: '+(vData.error.message||'unknown')+']'});
+      }catch(e){content.push({type:'text',text:'[Gagal analisis gambar: '+e.message+']'});}
+      files.forEach(function(f){
+        if(!f.isImg){try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' \u2014 binary]'});}}
+      });
+      if(t)content.push({type:'text',text:t});
+    } else {
+      files.forEach(function(f){
+        if(f.isImg){content.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}
+        else{try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' \u2014 binary]'});}}
+      });
+      if(t)content.push({type:'text',text:t});
     }
+  } else {
+    files.forEach(function(f){
+      if(f.isImg){content.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}
+      else{try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' \u2014 binary]'});}}
+    });
+    if(t)content.push({type:'text',text:t});
   }
-  files.forEach(function(f){
-    if(f.isImg){content.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}
-    else{try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' — binary]'});}}
-  });
-  if(t)content.push({type:'text',text:t});
 
   var userMsg={role:'user',content:content.length===1&&content[0].type==='text'?t:content};
   hist.push(userMsg);badge();
