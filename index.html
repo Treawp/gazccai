@@ -602,9 +602,6 @@ strong{color:var(--txt);font-weight:600}
           <option value="qwen/qwq-32b:free">QwQ 32B (Free) 🧠</option>
         </optgroup>
         <optgroup label="── Vision Support 👁 ──">
-          <option value="google/gemini-2.5-flash-lite" data-vision="1">Gemini 2.5 Flash Lite 👁⚡</option>
-          <option value="qwen/qwen2.5-vl-7b-instruct:free" data-vision="1">Qwen2.5 VL 7B (Free) 👁</option>
-          <option value="qwen/qwen2.5-vl-72b-instruct:free" data-vision="1">Qwen2.5 VL 72B (Free) 👁</option>
           <option value="moonshotai/kimi-k2.5" data-vision="1">Kimi K2.5 👁</option>
           <option value="google/gemini-2.0-flash-001" data-vision="1">Gemini 2.0 Flash 👁</option>
           <option value="google/gemini-flash-1.5" data-vision="1">Gemini 1.5 Flash 👁⚡</option>
@@ -936,6 +933,7 @@ function newChat(){
   var id=genChatId();
   allChats.unshift({id:id,name:'Chat Baru',hist:[],created:Date.now()});
   saveChats();currentChatId=id;hist=[];lastCodeContext='';
+  localStorage.setItem('gz_activechat',currentChatId);
   _buildChatUI();renderChatList();closeHistDrawer();
   document.getElementById('inp').focus();
 }
@@ -947,7 +945,9 @@ function switchChat(id){
   currentChatId=id;
   hist=JSON.parse(JSON.stringify(target.hist||[]));
   lastCodeContext='';
-  _rebuildMsgsFromHist();renderChatList();closeHistDrawer();
+  localStorage.setItem('gz_activechat',currentChatId); // FIX: save active
+  if(hist.length>0)_rebuildMsgsFromHist();else _buildChatUI();
+  renderChatList();closeHistDrawer();
 }
 
 function deleteChat(id,e){
@@ -1056,10 +1056,21 @@ function showApp(){
     var id=genChatId();
     allChats=[{id:id,name:'Chat Baru',hist:[],created:Date.now()}];
     saveChats();currentChatId=id;
+    _buildChatUI();
   } else {
-    currentChatId=allChats[0].id;
-    hist=JSON.parse(JSON.stringify(allChats[0].hist||[]));
+    // FIX: restore last active chat, bukan selalu allChats[0]
+    var savedId=localStorage.getItem('gz_activechat');
+    var savedChat=savedId&&allChats.find(function(c){return c.id===savedId;});
+    if(savedChat){
+      currentChatId=savedChat.id;
+      hist=JSON.parse(JSON.stringify(savedChat.hist||[]));
+    } else {
+      currentChatId=allChats[0].id;
+      hist=JSON.parse(JSON.stringify(allChats[0].hist||[]));
+    }
+    // FIX: selalu render, baik hist ada maupun kosong
     if(hist.length>0)_rebuildMsgsFromHist();
+    else _buildChatUI();
   }
   updateMemBadge();
   document.getElementById('inp').focus();
@@ -1688,18 +1699,10 @@ var AGENT_TOOLS={
     var imgContent=_agentCurrentImages.map(function(f){return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};});
     imgContent.push({type:'text',text:input&&input.trim()?input.trim():'Analisis gambar ini secara lengkap dan detail. Jelaskan semua yang kamu lihat.'});
     try{
-      var _visionFallbacks=['google/gemini-2.5-flash-lite','google/gemini-flash-1.5','openai/gpt-4o-mini'];
-    var _selForVision=document.getElementById('msel');
-    var _visionModelToUse=_visionFallbacks[0];
-    if(_selForVision){
-      var _curOpt=_selForVision.options[_selForVision.selectedIndex];
-      if(_curOpt&&_curOpt.getAttribute('data-vision')==='1'){_visionModelToUse=_selForVision.value;}
-      else{for(var _vi=0;_vi<_selForVision.options.length;_vi++){if(_selForVision.options[_vi].getAttribute('data-vision')==='1'){_visionModelToUse=_selForVision.options[_vi].value;break;}}}
-    }
-    var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
         method:'POST',
         headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:_visionModelToUse,messages:[{role:'user',content:imgContent}],max_tokens:800})
+        body:JSON.stringify({model:document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23',messages:[{role:'user',content:imgContent}],max_tokens:2000})
       });
       var vData=await vRes.json();
       if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
@@ -2411,67 +2414,36 @@ async function send(){
   var t=inp.value.trim();var files=pendingFiles.slice();
   if(!t&&files.length===0)return;if(!API_KEY)return;
   inp.value='';inp.style.height='auto';_fixBarPos();btn.disabled=true;pendingFiles=[];renderAttachBar();
+  try{ // FIX: try/finally agar btn SELALU di-enable balik even kalau ada error di fitur baru
   if(t)_autoNameChat(t);
   addMsg('user',t,files);
 
-  if(agentMode){await runAgent(t,files);_saveCurrentHist();btn.disabled=false;inp.focus();return;}
+  if(agentMode){await runAgent(t,files);_saveCurrentHist();return;}
 
   var content=[];
   var hasImages=files.some(function(f){return f.isImg;});
-
-  // Helper: cari vision model tersedia
-  function getVisionModel(){
-    var FB=['google/gemini-2.5-flash-lite','google/gemini-flash-1.5','openai/gpt-4o-mini'];
-    var sel=document.getElementById('msel');
-    if(sel){
-      var cur=sel.options[sel.selectedIndex];
-      if(cur&&cur.getAttribute('data-vision')==='1')return sel.value;
-      for(var i=0;i<sel.options.length;i++){if(sel.options[i].getAttribute('data-vision')==='1')return sel.options[i].value;}
-    }
-    return FB[0];
-  }
-
-  // Vision routing: auto-fallback kalau model gak support gambar
+  // ── Vision guard: cek apakah model selected support gambar ────────────────
   if(hasImages){
     var selOpt=document.getElementById('msel');
     var selOption=selOpt&&selOpt.options[selOpt.selectedIndex];
     var supportsVision=selOption&&selOption.getAttribute('data-vision')==='1';
     if(!supportsVision){
-      // Auto-analyze image pakai vision model, inject hasil ke teks
-      var vModel=getVisionModel();
-      var imgParts=files.filter(function(f){return f.isImg;}).map(function(f){
-        return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};
-      });
-      imgParts.push({type:'text',text:t?'Pertanyaan user: '+t+'\nDeskripsikan gambar secara detail dan jawab pertanyaan user.':'Deskripsikan semua isi gambar ini secara lengkap dan detail.'});
-      try{
-        var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-          method:'POST',
-          headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-          body:JSON.stringify({model:vModel,messages:[{role:'user',content:imgParts}],max_tokens:800})
-        });
-        var vData=await vRes.json();
-        var vResult=(vData.choices&&vData.choices[0]&&vData.choices[0].message&&vData.choices[0].message.content)||'';
-        if(vResult)content.push({type:'text',text:'[Analisis Gambar via '+vModel+']:\n'+vResult});
-        else if(vData.error)content.push({type:'text',text:'[Vision error: '+(vData.error.message||'unknown')+']'});
-      }catch(e){content.push({type:'text',text:'[Gagal analisis gambar: '+e.message+']'});}
-      files.forEach(function(f){
-        if(!f.isImg){try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' \u2014 binary]'});}}
-      });
-      if(t)content.push({type:'text',text:t});
-    } else {
-      files.forEach(function(f){
-        if(f.isImg){content.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}
-        else{try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' \u2014 binary]'});}}
-      });
-      if(t)content.push({type:'text',text:t});
+      var modelName=selOption?selOption.text:'model ini';
+      // Tampilkan warning bubble
+      var warnWrap=document.createElement('div');warnWrap.className='msg bot';
+      var warnBub=document.createElement('div');warnBub.className='bubble';
+      warnBub.style.cssText='border-left:2px solid #ff9f1c;color:#ff9f1c;font-size:12px;';
+      warnBub.innerHTML='⚠️ <b>'+modelName+'</b> tidak support gambar (tidak ada 👁).<br>Ganti ke model dengan label 👁 untuk kirim gambar.';
+      warnWrap.appendChild(warnBub);chat.appendChild(warnWrap);
+      chat.scrollTop=chat.scrollHeight;
+      btn.disabled=false;inp.focus();return;
     }
-  } else {
-    files.forEach(function(f){
-      if(f.isImg){content.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}
-      else{try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' \u2014 binary]'});}}
-    });
-    if(t)content.push({type:'text',text:t});
   }
+  files.forEach(function(f){
+    if(f.isImg){content.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}
+    else{try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' — binary]'});}}
+  });
+  if(t)content.push({type:'text',text:t});
 
   var userMsg={role:'user',content:content.length===1&&content[0].type==='text'?t:content};
   hist.push(userMsg);badge();
@@ -2489,7 +2461,7 @@ async function send(){
     if(hist.length>80)hist=hist.slice(-80);
     badge();_saveCurrentHist();
   }
-  btn.disabled=false;inp.focus();
+  }catch(e){console.error('[GazccAI] send() error:',e);}finally{btn.disabled=false;inp.focus();}
 }
 </script>
 </body>
