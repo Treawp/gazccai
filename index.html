@@ -1871,13 +1871,15 @@ async function sendStream(messages,model){
       var thStart=Date.now();
       await new Promise(function(resolve){
         function tick(){
-          var elapsed=Date.now()-thStart;
-          if(elapsed>=thDuration){resolve();return;}
-          var progress=elapsed/thDuration;
-          var wi=Math.floor(progress*thWords.length);
-          var snippet=thWords.slice(Math.max(0,wi-5),wi+1).join(' ');
-          modeLabel.textContent='💭 '+(snippet.length>40?'...'+snippet.slice(-40):snippet);
-          setTimeout(tick,40);
+          try{
+            var elapsed=Date.now()-thStart;
+            if(elapsed>=thDuration){resolve();return;}
+            var progress=elapsed/thDuration;
+            var wi=Math.floor(progress*thWords.length);
+            var snippet=thWords.slice(Math.max(0,wi-5),wi+1).join(' ');
+            if(modeLabel)modeLabel.textContent='💭 '+(snippet.length>40?'...'+snippet.slice(-40):snippet);
+            setTimeout(tick,40);
+          }catch(e){resolve();}
         }
         tick();
       });
@@ -1894,15 +1896,27 @@ async function sendStream(messages,model){
     if(contBadge)contBadge.remove();
     if(!replyDiv){replyDiv=document.createElement('div');replyDiv.appendChild(cursor);bub.appendChild(replyDiv);}
 
-    // Typewriter effect — hanya reply bersih (tanpa <think>)
+    // Typewriter FIXED: try/catch di setiap tick — Promise SELALU resolve, tidak pernah hang
+    // Optimasi: textContent saat animasi, formatText hanya di akhir sekali
     showAgentMode('generating',90);
     var ci=0;
     await new Promise(function(resolve){
       function typeNext(){
-        if(ci>=replyText.length){replyDiv.innerHTML=formatText(replyText);chat.scrollTop=chat.scrollHeight;resolve();return;}
-        ci=Math.min(ci+4,replyText.length);
-        replyDiv.innerHTML=formatText(replyText.slice(0,ci))+'<span class="stream-cursor"></span>';
-        chat.scrollTop=chat.scrollHeight;setTimeout(typeNext,8);
+        try{
+          if(ci>=replyText.length){
+            try{replyDiv.innerHTML=formatText(replyText);}catch(fe){replyDiv.textContent=replyText;}
+            if(cursor&&cursor.parentNode)cursor.parentNode.removeChild(cursor);
+            chat.scrollTop=chat.scrollHeight;
+            resolve();return;
+          }
+          ci=Math.min(ci+6,replyText.length);
+          replyDiv.textContent=replyText.slice(0,ci);
+          chat.scrollTop=chat.scrollHeight;
+          setTimeout(typeNext,6);
+        }catch(tickErr){
+          try{replyDiv.textContent=replyText;}catch(e2){}
+          resolve();
+        }
       }
       typeNext();
     });
@@ -1910,7 +1924,7 @@ async function sendStream(messages,model){
 
   }catch(e){bub.innerHTML='<div style="color:#ff5555;font-size:12px">⚠️ Error: '+e.message+'</div>';hideAgentMode();return null;}
 
-  if(cursor.parentNode)cursor.parentNode.removeChild(cursor);
+  if(cursor&&cursor.parentNode)cursor.parentNode.removeChild(cursor);
 
   // <think> sudah dihandle sebelum typewriter — skip parsing ulang
 
