@@ -2676,19 +2676,23 @@ async function send(){
   var hasImages=files.some(function(f){return f.isImg;});
   // ── Vision guard: cek apakah model selected support gambar ────────────────
   if(hasImages){
-    var selOpt=document.getElementById('msel');
-    var selOption=selOpt&&selOpt.options[selOpt.selectedIndex];
-    var supportsVision=selOption&&selOption.getAttribute('data-vision')==='1';
+    var _msel=document.getElementById('msel');
+    var _mval=_msel?_msel.value:'';
+    var _mObj=modelList.find(function(m){return m.value===_mval;});
+    var supportsVision=_mObj?_mObj.vision:false;
     if(!supportsVision){
-      var modelName=selOption?selOption.text:'model ini';
-      // Tampilkan warning bubble
-      var warnWrap=document.createElement('div');warnWrap.className='msg bot';
-      var warnBub=document.createElement('div');warnBub.className='bubble';
-      warnBub.style.cssText='border-left:2px solid #ff9f1c;color:#ff9f1c;font-size:12px;';
-      warnBub.innerHTML='⚠️ <b>'+modelName+'</b> tidak support gambar (tidak ada 👁).<br>Ganti ke model dengan label 👁 untuk kirim gambar.';
-      warnWrap.appendChild(warnBub);chat.appendChild(warnWrap);
-      chat.scrollTop=chat.scrollHeight;
-      btn.disabled=false;inp.focus();return;
+      // Auto-switch ke vision model pertama yang tersedia
+      var _vModel=modelList.find(function(m){return m.vision;});
+      if(_vModel&&_msel){
+        _msel.value=_vModel.value;
+        updateModelPill();
+        // Toast notif
+        var nt=document.createElement('div');
+        nt.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--orange);color:var(--txt);padding:8px 16px;border-radius:20px;font-size:12px;z-index:9999;white-space:nowrap;';
+        nt.textContent='🔄 Auto-switch ke '+_vModel.name+' (vision)';
+        document.body.appendChild(nt);
+        setTimeout(function(){if(nt.parentNode)nt.parentNode.removeChild(nt);},2500);
+      }
     }
   }
   files.forEach(function(f){
