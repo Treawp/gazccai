@@ -931,8 +931,34 @@ var pendingFiles=[];
 // ---- CHAT HISTORY SYSTEM ----
 var allChats=[];
 var currentChatId=null;
-try{allChats=JSON.parse(localStorage.getItem('gz_chats')||'[]');}catch(e){allChats=[];}
-function saveChats(){try{localStorage.setItem('gz_chats',JSON.stringify(allChats));}catch(e){}}
+try{
+  var _rawChats=localStorage.getItem('gz_chats')||'[]';
+  allChats=JSON.parse(_rawChats);
+  if(!Array.isArray(allChats))allChats=[];
+  // Sanitasi: hapus image_url dari hist yang tersimpan (legacy cleanup)
+  allChats=allChats.map(function(chat){
+    if(!chat.hist)return chat;
+    chat.hist=chat.hist.map(function(msg){
+      if(msg.role!=='user'||typeof msg.content==='string')return msg;
+      if(!Array.isArray(msg.content))return msg;
+      msg.content=msg.content.map(function(block){
+        if(block.type==='image_url')return {type:'text',text:'[🖼 Gambar dikirim sebelumnya]'};
+        return block;
+      });
+      return msg;
+    });
+    return chat;
+  });
+}catch(e){allChats=[];try{localStorage.removeItem('gz_chats');}catch(e2){}}
+function saveChats(){
+  try{localStorage.setItem('gz_chats',JSON.stringify(allChats));}
+  catch(e){
+    // QuotaExceededError — trim ke 2 chat terbaru dan coba lagi
+    console.warn('saveChats quota exceeded, trimming...');
+    if(allChats.length>2){allChats=allChats.slice(0,2);}
+    try{localStorage.setItem('gz_chats',JSON.stringify(allChats));}catch(e2){}
+  }
+}
 function genChatId(){return 'c'+Date.now()+'_'+Math.random().toString(36).slice(2,5);}
 
 // ============================================================
@@ -1210,11 +1236,37 @@ function deleteChat(id,e){
   renderChatList();
 }
 
+function _stripImagesFromHist(h){
+  // Hapus base64 image dari hist sebelum disimpan ke localStorage
+  // Biar localStorage gak overflow dan app gak freeze
+  return h.map(function(msg){
+    if(msg.role!=='user')return msg;
+    if(typeof msg.content==='string')return msg;
+    if(!Array.isArray(msg.content))return msg;
+    var stripped=msg.content.map(function(block){
+      if(block.type==='image_url'){return {type:'text',text:'[🖼 Gambar dikirim — tidak disimpan di history]'};}
+      return block;
+    });
+    return {role:msg.role,content:stripped};
+  });
+}
 function _saveCurrentHist(){
   if(!currentChatId)return;
   var cur=allChats.find(function(c){return c.id===currentChatId;});
-  if(cur){cur.hist=JSON.parse(JSON.stringify(hist));}
-  saveChats();
+  if(cur){
+    var stripped=_stripImagesFromHist(hist);
+    cur.hist=JSON.parse(JSON.stringify(stripped));
+  }
+  try{
+    localStorage.setItem('gz_chats',JSON.stringify(allChats));
+  }catch(e){
+    // localStorage penuh — coba hapus chat lama
+    console.warn('localStorage full, trimming old chats');
+    if(allChats.length>3){
+      allChats=allChats.slice(0,3);
+      try{localStorage.setItem('gz_chats',JSON.stringify(allChats));}catch(e2){}
+    }
+  }
 }
 
 function _buildChatUI(){
@@ -2662,6 +2714,32 @@ function toggleStep(uid){
   var isOpen=body.classList.contains('show');body.classList.toggle('show',!isOpen);if(arr)arr.classList.toggle('open',!isOpen);
 }
 
+// ---- GEMINI VISION PIPELINE ----
+// Step 1: Gambar → Gemini Flash (vision analysis)
+// Step 2: Hasil analisis jadi context → dikirim ke model utama (Qwen/dll)
+async function _geminiVisionAnalysis(imageFiles, userText){
+  var imgContent=imageFiles.map(function(f){
+    return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};
+  });
+  imgContent.push({type:'text',text:'Analisis gambar ini secara detail dan komprehensif. Jelaskan semua yang terlihat: objek, teks, warna, layout, konteks, dll.'+(userText?'\n\nKonteks dari user: '+userText:'')});
+  var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
+    body:JSON.stringify({model:'google/gemini-2.0-flash-001',messages:[{role:'user',content:imgContent}],max_tokens:1500,temperature:0.3})
+  });
+  if(!res.ok){var eb=await res.text().catch(function(){return '';});throw new Error('Gemini vision HTTP '+res.status+': '+eb);}
+  var d=await res.json();
+  if(d.error)throw new Error(d.error.message||'Gemini API error');
+  return (d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'[Gemini tidak memberikan deskripsi]';
+}
+
+function _showToast(msg,color){
+  var nt=document.createElement('div');
+  nt.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid '+(color||'var(--orange)')+';color:var(--txt);padding:8px 16px;border-radius:20px;font-size:12px;z-index:9999;white-space:nowrap;';
+  nt.textContent=msg;document.body.appendChild(nt);
+  setTimeout(function(){if(nt.parentNode)nt.parentNode.removeChild(nt);},2800);
+}
+
 // ---- SEND ----
 async function send(){
   var t=inp.value.trim();var files=pendingFiles.slice();
@@ -2670,54 +2748,71 @@ async function send(){
   if(t)_autoNameChat(t);
   addMsg('user',t,files);
 
-  if(agentMode){await runAgent(t,files);_saveCurrentHist();btn.disabled=false;inp.focus();return;}
+  try{
+    if(agentMode){await runAgent(t,files);_saveCurrentHist();return;}
 
-  var content=[];
-  var hasImages=files.some(function(f){return f.isImg;});
-  // ── Vision guard: cek apakah model selected support gambar ────────────────
-  if(hasImages){
-    var _msel=document.getElementById('msel');
-    var _mval=_msel?_msel.value:'';
-    var _mObj=modelList.find(function(m){return m.value===_mval;});
-    var supportsVision=_mObj?_mObj.vision:false;
-    if(!supportsVision){
-      // Auto-switch ke vision model pertama yang tersedia
-      var _vModel=modelList.find(function(m){return m.vision;});
-      if(_vModel&&_msel){
-        _msel.value=_vModel.value;
-        updateModelPill();
-        // Toast notif
-        var nt=document.createElement('div');
-        nt.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--orange);color:var(--txt);padding:8px 16px;border-radius:20px;font-size:12px;z-index:9999;white-space:nowrap;';
-        nt.textContent='🔄 Auto-switch ke '+_vModel.name+' (vision)';
-        document.body.appendChild(nt);
-        setTimeout(function(){if(nt.parentNode)nt.parentNode.removeChild(nt);},2500);
+    var imageFiles=files.filter(function(f){return f.isImg;});
+    var nonImageFiles=files.filter(function(f){return !f.isImg;});
+    var hasImages=imageFiles.length>0;
+    var model=document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23';
+    var content=[];
+
+    if(hasImages){
+      var selModelObj=modelList.find(function(m){return m.value===model;});
+      var selSupportsVision=selModelObj?selModelObj.vision:false;
+
+      if(selSupportsVision){
+        // Model sudah vision-capable → kirim gambar langsung
+        imageFiles.forEach(function(f){
+          content.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});
+        });
+        _showToast('👁 Gambar dikirim langsung ke '+(selModelObj?selModelObj.name:model),'var(--cyan)');
+      }else{
+        // ── PIPELINE: Gemini Flash → model utama ──
+        _showToast('🔍 Step 1/2: Analisis gambar via Gemini Flash...','var(--purple)');
+        showAgentMode('generating',25);
+        var visionDesc='';
+        try{
+          visionDesc=await _geminiVisionAnalysis(imageFiles,t);
+          _showToast('✅ Step 2/2: Mengirim ke '+(selModelObj?selModelObj.name:model)+'...','var(--green)');
+        }catch(ve){
+          visionDesc='[Gagal analisis gambar dari Gemini: '+ve.message+']';
+          _showToast('⚠️ Gemini gagal — melanjutkan tanpa analisis gambar','var(--orange)');
+        }
+        hideAgentMode();
+        // Inject hasil vision sebagai context ke pesan
+        content.push({type:'text',text:'[🖼 Analisis Gambar (via Gemini Flash)]\n'+visionDesc});
       }
     }
+
+    // Non-image files
+    nonImageFiles.forEach(function(f){
+      try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}
+      catch(e){content.push({type:'text',text:'[File: '+f.name+' — binary]'});}
+    });
+
+    if(t)content.push({type:'text',text:t});
+
+    var userMsg={role:'user',content:content.length===1&&content[0].type==='text'?t:content};
+    hist.push(userMsg);badge();
+
+    var messages=[];
+    var fullSys=buildFullSysPrompt();
+    if(fullSys)messages.push({role:'system',content:fullSys});
+    hist.forEach(function(h){messages.push(h);});
+
+    var result=await sendStream(messages,model);
+    if(result){
+      hist.push({role:'assistant',content:result.replyText||''});
+      if(hist.length>80)hist=hist.slice(-80);
+      badge();_saveCurrentHist();
+    }
+  }catch(e){
+    console.error('send() fatal error:',e);
+  }finally{
+    // SELALU release button — gak peduli error apapun
+    btn.disabled=false;inp.focus();
   }
-  files.forEach(function(f){
-    if(f.isImg){content.push({type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}});}
-    else{try{content.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){content.push({type:'text',text:'[File: '+f.name+' — binary]'});}}
-  });
-  if(t)content.push({type:'text',text:t});
-
-  var userMsg={role:'user',content:content.length===1&&content[0].type==='text'?t:content};
-  hist.push(userMsg);badge();
-
-  var model=document.getElementById('msel').value;
-  var messages=[];
-  // ★ Inject full system prompt dengan memory + context rules
-  var fullSys=buildFullSysPrompt();
-  if(fullSys)messages.push({role:'system',content:fullSys});
-  hist.forEach(function(h){messages.push(h);});
-
-  var result=await sendStream(messages,model);
-  if(result){
-    hist.push({role:'assistant',content:result.replyText||''});
-    if(hist.length>80)hist=hist.slice(-80);
-    badge();_saveCurrentHist();
-  }
-  btn.disabled=false;inp.focus();
 }
 </script>
 </body>
