@@ -1239,7 +1239,8 @@ function _rebuildMsgsFromHist(){
     if(h.role==='system')return;
     var role=h.role;
     var content=typeof h.content==='string'?h.content:(Array.isArray(h.content)?h.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'[multipart]');
-    var wrap=document.createElement('div');wrap.className='msg '+role;
+    var cssRole=role==='assistant'?'bot':role;
+    var wrap=document.createElement('div');wrap.className='msg '+cssRole;
     var lbl=document.createElement('div');lbl.className='lbl';lbl.textContent=role==='user'?'YOU':BOT;
     var bub=document.createElement('div');bub.className='bubble';
     var txt=document.createElement('div');txt.innerHTML=formatText(content);
