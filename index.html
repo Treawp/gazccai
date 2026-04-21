@@ -1249,7 +1249,7 @@ function _rebuildMsgsFromHist(){
     wrap.appendChild(lbl);wrap.appendChild(bub);
     chatEl.appendChild(wrap);
   });
-  chatEl.scrollTop=chatEl.scrollHeight;badge();
+  chatEl.style.bottom='70px';chatEl.scrollTop=chatEl.scrollHeight;badge();
 }
 
 function renderChatList(){
@@ -1312,7 +1312,8 @@ function showApp(){
   } else {
     currentChatId=allChats[0].id;
     hist=JSON.parse(JSON.stringify(allChats[0].hist||[]));
-    if(hist.length>0)_rebuildMsgsFromHist();
+    if(hist.length>0){_rebuildMsgsFromHist();}else{_buildChatUI();}
+    renderChatList();
   }
   updateMemBadge();
   document.getElementById('inp').focus();
@@ -1662,6 +1663,16 @@ function formatText(text){
       .replace(/`([^`]+)`/g,'<code>$1</code>')
       .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g,'<em style="color:var(--muted)">$1</em>')
+      .replace(/((?:^|\n)(\|[^\n]+\|)(?:\n\|[-|: ]+\|)((?:\n\|[^\n]+\|)*))/g,function(m,full){
+        var lines=full.trim().split('\n').filter(function(l){return l.trim();});
+        if(lines.length<2)return full;
+        var hcells=lines[0].split('|').filter(function(c,i,a){return i>0&&i<a.length-1;}).map(function(c){return c.trim();});
+        var alignLine=lines[1];
+        var aligns=alignLine.split('|').filter(function(c,i,a){return i>0&&i<a.length-1;}).map(function(c){c=c.trim();return /^:-+:$/.test(c)?'center':/^-+:$/.test(c)?'right':'left';});
+        var thead='<thead><tr>'+hcells.map(function(h,i){return '<th style="text-align:'+(aligns[i]||'left')+';padding:7px 12px;background:var(--card);border-bottom:2px solid var(--orange);font-size:12px;letter-spacing:0.3px;color:var(--txt)">'+h+'</th>';}).join('')+'</tr></thead>';
+        var tbody='<tbody>'+lines.slice(2).map(function(row,ri){var cells=row.split('|').filter(function(c,i,a){return i>0&&i<a.length-1;}).map(function(c){return c.trim();});return '<tr style="background:'+(ri%2===0?'var(--bg2)':'var(--card)')+'">'+cells.map(function(c,i){return '<td style="text-align:'+(aligns[i]||'left')+';padding:6px 12px;border-bottom:1px solid var(--brd);font-size:13px">'+c+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
+        return '<div style="overflow-x:auto;margin:10px 0"><table style="border-collapse:collapse;width:100%;font-family:var(--font)">'+thead+tbody+'</table></div>';
+      })
       .replace(/\n/g,'<br>');
   }).join(''));
 }
