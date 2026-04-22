@@ -1232,13 +1232,13 @@ function _autoNameChat(text){
   saveChats();renderChatList();
 }
 
-// ---- INIT ----
-(function(){
+// ---- INIT ---- (dipindah ke bawah, setelah DOM vars dideklarasi)
+function _autoInit(){
   var k=localStorage.getItem('gz_key');
   var b=localStorage.getItem('gz_bot');
   var s=localStorage.getItem('gz_sys');
   if(k){API_KEY=k;BOT=b||'GazccAI';SYS_PROMPT=s||'';showApp();}
-})();
+}
 
 function startApp(){
   var k=document.getElementById('apiKey').value.trim();
@@ -1346,6 +1346,9 @@ document.addEventListener('paste',function(e){
   }
   if(handled)e.preventDefault();
 });
+
+// ← DOM vars & event listeners sudah siap — aman panggil init sekarang
+_autoInit();
 
 function badge(){
   var n=Math.floor(hist.length/2);
