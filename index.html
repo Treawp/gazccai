@@ -684,7 +684,7 @@ strong{color:var(--txt);font-weight:600}
     <!-- Hidden select still used by JS -->
     <select id="msel" style="display:none">
       <optgroup label="── Vision Support 👁 ──">
-        <option value="x-ai/grok-4.1-fast" selected>Grok 4.1 Fast ⚡</option>
+        <option value="qwen/qwen3.5-flash-02-23" selected>Qwen3.5 Flash ⚡</option>
         <option value="moonshotai/kimi-k2.5" data-vision="1">Kimi K2.5 👁</option>
         <option value="google/gemini-2.0-flash-001" data-vision="1">Gemini 2.0 Flash 👁</option>
         <option value="google/gemini-flash-1.5" data-vision="1">Gemini 1.5 Flash 👁⚡</option>
@@ -698,7 +698,7 @@ strong{color:var(--txt);font-weight:600}
         <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free) 🦙</option>
         <option value="nvidia/llama-3.1-nemotron-ultra-253b-v1:free">Nemotron 253B (Free)</option>
         <option value="mistralai/mistral-nemo:free">Mistral Nemo (Free)</option>
-        <option value="x-ai/grok-4.1-fast">Grok 4.1 Fast ⚡</option>
+        <option value="qwen/qwen3.5-flash-02-23">Qwen3.5 Flash ⚡</option>
       </optgroup>
     </select>
     <button class="hbtn agent-toggle" id="agentToggle" onclick="toggleAgent()" title="GazccAgent Mode" style="font-size:15px">⚡</button>
@@ -761,9 +761,9 @@ strong{color:var(--txt);font-weight:600}
 <script>
 // Model Sheet Logic
 var modelList = [
-  {value:'x-ai/grok-4.1-fast',name:'Grok 4.1 Fast',desc:'Fast · Reasoning ⚡',vision:false},
-  {value:'x-ai/grok-4.1-fast',name:'Grok 4.1 Fast',desc:'Fast · Reasoning ⚡',vision:false},
-  {value:'x-ai/grok-4.1-fast',name:'Grok 4.1 Fast',desc:'Fast · Reasoning ⚡',vision:false},
+  {value:'qwen/qwen3.5-flash-02-23',name:'Qwen3.5 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
+  {value:'qwen/qwen3.5-flash-02-23',name:'Qwen3.5 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
+  {value:'qwen/qwen3.5-flash-02-23',name:'Qwen3.5 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
   {value:'moonshotai/kimi-k2.5',name:'Kimi K2.5',desc:'Vision Support 👁',vision:true},
   {value:'google/gemini-2.0-flash-001',name:'Gemini 2.0 Flash',desc:'Vision Support 👁',vision:true},
   {value:'google/gemini-flash-1.5',name:'Gemini 1.5 Flash',desc:'Vision · Cepat 👁',vision:true},
@@ -775,7 +775,7 @@ var modelList = [
   {value:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B',desc:'Free · Open Source',vision:false},
   {value:'nvidia/llama-3.1-nemotron-ultra-253b-v1:free',name:'Nemotron 253B',desc:'Free · Powerful',vision:false},
   {value:'mistralai/mistral-nemo:free',name:'Mistral Nemo',desc:'Free · European',vision:false},
-  {value:'x-ai/grok-4.1-fast',name:'Grok 4.1 Fast',desc:'Fast · Reasoning ⚡',vision:false},
+  {value:'qwen/qwen3.5-flash-02-23',name:'Qwen3.5 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
 ];
 
 function openModelSheet(){
@@ -1724,7 +1724,7 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    var selectedModel=model||document.getElementById('msel').value||'x-ai/grok-4.1-fast';
+    var selectedModel=model||document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23';
     // Tampilkan indikator proses AI
     showAgentMode('generating', 15);
     var contBadge=null;
@@ -1940,7 +1940,7 @@ var AGENT_TOOLS={
       var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
         method:'POST',
         headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:document.getElementById('msel').value||'x-ai/grok-4.1-fast',messages:[{role:'user',content:imgContent}],max_tokens:2000})
+        body:JSON.stringify({model:document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23',messages:[{role:'user',content:imgContent}],max_tokens:2000})
       });
       var vData=await vRes.json();
       if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
@@ -1982,7 +1982,7 @@ var AGENT_TOOLS={
     xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
     xhr.setRequestHeader('X-Title','GazccDeepReason');
     var body=JSON.stringify({
-      model: agentModel||'x-ai/grok-4.1-fast',
+      model: agentModel||'qwen/qwen3.5-flash-02-23',
       messages:[
         {role:'system',content:'Kamu adalah analytical engine yang SANGAT AKURAT dan grounded. Aturan MUTLAK:\n1. HANYA nyatakan hal yang kamu YAKIN benar — kalau ragu, katakan "Aku tidak yakin tentang X"\n2. JANGAN mengarang data, angka, atau fakta\n3. Gunakan reasoning step-by-step yang eksplisit\n4. Pisahkan FAKTA vs ASUMSI vs OPINI dengan jelas\n5. Output format: [ANALYSIS] → [FACTS] → [REASONING] → [CONCLUSION]\n6. Jika pertanyaan ambigu, nyatakan ambiguitas dan beri jawaban untuk tiap interpretasi'},
         {role:'user',content:q}
@@ -2013,7 +2013,7 @@ var AGENT_TOOLS={
     xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
     xhr.setRequestHeader('X-Title','GazccClaudeReason');
     var body=JSON.stringify({
-      model:'x-ai/grok-4.1-fast',
+      model:'qwen/qwen3.5-flash-02-23',
       messages:[
         {role:'system',content:'You are Claude, an AI assistant by Anthropic known for exceptional reasoning, honesty, and accuracy. Always think step by step. Never hallucinate facts. If uncertain, explicitly state your uncertainty. Provide thorough, nuanced analysis.'},
         {role:'user',content:q}
@@ -2302,7 +2302,7 @@ async function runAgent(userMsg,files){
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
-    var agentModel=document.getElementById('msel').value||'x-ai/grok-4.1-fast';
+    var agentModel=document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23';
 
     // ── Bangun messages array multi-turn (bukan digabung jadi 1 string) ──
     // Ini biar prompt user tidak kepotong dan context window lebih efisien
@@ -2643,7 +2643,7 @@ async function send(){
     var imageFiles=files.filter(function(f){return f.isImg;});
     var nonImageFiles=files.filter(function(f){return !f.isImg;});
     var hasImages=imageFiles.length>0;
-    var model=document.getElementById('msel').value||'x-ai/grok-4.1-fast';
+    var model=document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23';
     var content=[];
 
     if(hasImages){
