@@ -684,7 +684,7 @@ strong{color:var(--txt);font-weight:600}
     <!-- Hidden select still used by JS -->
     <select id="msel" style="display:none">
       <optgroup label="── Vision Support 👁 ──">
-        <option value="minimax/minimax-m2.7" data-vision="1" selected>MiniMax M2.7 👁⚡</option>
+        <option value="moonshotai/kimi-k2.6" data-vision="1" selected>Kimi K2.6 👁⚡</option>
         <option value="moonshotai/kimi-k2.5" data-vision="1">Kimi K2.5 👁</option>
         <option value="google/gemini-2.0-flash-001" data-vision="1">Gemini 2.0 Flash 👁</option>
         <option value="google/gemini-flash-1.5" data-vision="1">Gemini 1.5 Flash 👁⚡</option>
@@ -698,7 +698,7 @@ strong{color:var(--txt);font-weight:600}
         <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free) 🦙</option>
         <option value="nvidia/llama-3.1-nemotron-ultra-253b-v1:free">Nemotron 253B (Free)</option>
         <option value="mistralai/mistral-nemo:free">Mistral Nemo (Free)</option>
-        <option value="minimax/minimax-m1">MiniMax M1</option>
+        <option value="moonshotai/kimi-k2.6">Kimi K2.6 👁⚡</option>
       </optgroup>
     </select>
     <button class="hbtn agent-toggle" id="agentToggle" onclick="toggleAgent()" title="GazccAgent Mode" style="font-size:15px">⚡</button>
@@ -761,9 +761,9 @@ strong{color:var(--txt);font-weight:600}
 <script>
 // Model Sheet Logic
 var modelList = [
-  {value:'minimax/minimax-m2.7',name:'MiniMax M2.7',desc:'Vision · Cepat & Powerful 👁',vision:true},
-  {value:'minimax/minimax-m2.7',name:'MiniMax M2.7',desc:'Vision · Cepat & Powerful 👁',vision:true},
-  {value:'minimax/minimax-m2.7',name:'MiniMax M2.7',desc:'Vision · Cepat & Powerful 👁',vision:true},
+  {value:'moonshotai/kimi-k2.6',name:'Kimi K2.6',desc:'Vision · Fast & Powerful 👁',vision:true},
+  {value:'moonshotai/kimi-k2.6',name:'Kimi K2.6',desc:'Vision · Fast & Powerful 👁',vision:true},
+  {value:'moonshotai/kimi-k2.6',name:'Kimi K2.6',desc:'Vision · Fast & Powerful 👁',vision:true},
   {value:'moonshotai/kimi-k2.5',name:'Kimi K2.5',desc:'Vision Support 👁',vision:true},
   {value:'google/gemini-2.0-flash-001',name:'Gemini 2.0 Flash',desc:'Vision Support 👁',vision:true},
   {value:'google/gemini-flash-1.5',name:'Gemini 1.5 Flash',desc:'Vision · Cepat 👁',vision:true},
@@ -775,7 +775,7 @@ var modelList = [
   {value:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B',desc:'Free · Open Source',vision:false},
   {value:'nvidia/llama-3.1-nemotron-ultra-253b-v1:free',name:'Nemotron 253B',desc:'Free · Powerful',vision:false},
   {value:'mistralai/mistral-nemo:free',name:'Mistral Nemo',desc:'Free · European',vision:false},
-  {value:'minimax/minimax-m1',name:'MiniMax M1',desc:'Powerful',vision:false},
+  {value:'moonshotai/kimi-k2.6',name:'Kimi K2.6',desc:'Vision · Fast & Powerful 👁',vision:true},
 ];
 
 function openModelSheet(){
@@ -1724,7 +1724,7 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    var selectedModel=model||document.getElementById('msel').value||'minimax/minimax-m2.7';
+    var selectedModel=model||document.getElementById('msel').value||'moonshotai/kimi-k2.6';
     // Tampilkan indikator proses AI
     showAgentMode('generating', 15);
     var contBadge=null;
@@ -1940,7 +1940,7 @@ var AGENT_TOOLS={
       var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
         method:'POST',
         headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:document.getElementById('msel').value||'minimax/minimax-m2.7',messages:[{role:'user',content:imgContent}],max_tokens:2000})
+        body:JSON.stringify({model:document.getElementById('msel').value||'moonshotai/kimi-k2.6',messages:[{role:'user',content:imgContent}],max_tokens:2000})
       });
       var vData=await vRes.json();
       if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
@@ -1982,7 +1982,7 @@ var AGENT_TOOLS={
     xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
     xhr.setRequestHeader('X-Title','GazccDeepReason');
     var body=JSON.stringify({
-      model: agentModel||'minimax/minimax-m2.7',
+      model: agentModel||'moonshotai/kimi-k2.6',
       messages:[
         {role:'system',content:'Kamu adalah analytical engine yang SANGAT AKURAT dan grounded. Aturan MUTLAK:\n1. HANYA nyatakan hal yang kamu YAKIN benar — kalau ragu, katakan "Aku tidak yakin tentang X"\n2. JANGAN mengarang data, angka, atau fakta\n3. Gunakan reasoning step-by-step yang eksplisit\n4. Pisahkan FAKTA vs ASUMSI vs OPINI dengan jelas\n5. Output format: [ANALYSIS] → [FACTS] → [REASONING] → [CONCLUSION]\n6. Jika pertanyaan ambigu, nyatakan ambiguitas dan beri jawaban untuk tiap interpretasi'},
         {role:'user',content:q}
@@ -2013,7 +2013,7 @@ var AGENT_TOOLS={
     xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
     xhr.setRequestHeader('X-Title','GazccClaudeReason');
     var body=JSON.stringify({
-      model:'minimax/minimax-m2.7',
+      model:'moonshotai/kimi-k2.6',
       messages:[
         {role:'system',content:'You are Claude, an AI assistant by Anthropic known for exceptional reasoning, honesty, and accuracy. Always think step by step. Never hallucinate facts. If uncertain, explicitly state your uncertainty. Provide thorough, nuanced analysis.'},
         {role:'user',content:q}
@@ -2039,195 +2039,150 @@ var AGENT_TOOLS={
   }}
 };
 
-var AGENT_SYS=`Kamu adalah GazccAgent Pro — AI agent autonomous dengan 3 persona internal:
+var AGENT_SYS=`Kamu adalah GazccAgent Pro — AI agent autonomous yang CERDAS dan EFISIEN.
 
-═══════════════════════════════════════════════════════════
-🧠 PLANNER → ⚡ EXECUTOR → 🔍 CRITIC (siklus berulang)
-═══════════════════════════════════════════════════════════
+PRINSIP UTAMA: Jawab langsung kalau bisa. Pakai tools HANYA kalau memang dibutuhkan.
 
-Setiap task WAJIB melalui siklus ini minimal 1x:
+KAPAN LANGSUNG FINAL ANSWER (tanpa tools):
+- Pertanyaan, penjelasan, rekomendasi, chat biasa → LANGSUNG jawab
 
-[PLANNER] Analisis & Decomposition:
-- Pecah task kompleks jadi sub-task atomic
-- Tentukan urutan dan dependencies
-- Pilih tools yang tepat
-- Output: [PLAN] dengan langkah terstruktur
+KAPAN PAKAI TOOLS:
+- Lihat bagian [TOOLS TERSEDIA UNTUK TASK INI] di bawah pesan user
+- Kalau section itu ADA → tools tersebut relevan untuk task ini, gunakan sesuai kebutuhan
+- Kalau section itu TIDAK ADA → jangan pakai tools, jawab langsung
 
-[EXECUTOR] Eksekusi & Action:
-- Jalankan tools sesuai plan
-- Handle errors & edge cases
-- Kumpulkan observasi/data
-- Output: Hasil eksekusi mentah
+FORMAT PAKAI TOOL:
+THOUGHT: [kenapa perlu tool ini]
+ACTION: [nama_tool]
+INPUT: [parameter]
 
-[CRITIC] Review & Reflection:
-- Evaluasi: Akurat? Lengkap? Sesuai goal?
-- Identifikasi kekurangan/masalah
-- Putuskan: REFINE (ulang) atau DELIVER
-- Output: [REFLECT] dengan confidence score
-
-═══════════════════════════════════════════════════════════
-FORMAT OUTPUT WAJIB
-═══════════════════════════════════════════════════════════
-
-Mode PLANNER:
-[MODE: PLANNER]
-[PLAN]
-Task: [objektif]
-Step 1: [aksi] → Tool: [nama] → Expected: [output]
-...
-Dependencies: [urutan kritis]
-Confidence: [0-100%]
-
-Mode EXECUTOR:
-[MODE: EXECUTOR]
-THOUGHT: [rationale]
-ACTION: [tool_name]
-INPUT: [parameters]
-
-Mode CRITIC:
-[MODE: CRITIC]
-[REFLECT]
-✓ Strengths: [apa yang bagus]
-✗ Weaknesses: [apa yang kurang]
-? Questions: [yang perlu diklarifikasi]
-Confidence: [0-100%]
-Decision: [REFINE/DELIVER]
-
-Final Answer (hanya setelah CRITIC approve):
-[MODE: FINAL]
+Setelah semua tools selesai:
 FINAL ANSWER: [jawaban lengkap]
 
-═══════════════════════════════════════════════════════════
-ATURAN KETAT
-═══════════════════════════════════════════════════════════
-
-1. SELALU mulai dengan [MODE: PLANNER] untuk task baru
-2. Jangan skip ke [MODE: FINAL] tanpa lewat CRITIC
-3. Confidence < 80% = wajib REFINE/ulang
-4. Code WAJIB divalidasi sebelum deliver
-5. "Fix", "tambah", "ubah" = merujuk context sebelumnya
-6. DILARANG menjelaskan cara kerja FILE_EXPORT ke user — EKSEKUSI langsung pakai tools
-7. [KEYWORD: FILE] create_file + get_download HANYA jika pesan user mengandung: "buatkan file", "buat file", "tulis file", "simpan file", "download", "save file", "generate file". Jika TIDAK ada keyword tersebut → DILARANG pakai create_file, langsung jawab di FINAL ANSWER.
-8. MUTLAK DILARANG: menulis [FILE_EXPORT:...] di output kamu — system akan MENOLAK jawaban tersebut. HANYA get_download yang boleh generate marker ini.
-9. Jangan instruksikan user melakukan sesuatu yang bisa kamu kerjakan sendiri dengan tools
-10. Setelah get_download berhasil, langsung tulis FINAL ANSWER biasa — tombol download akan otomatis muncul tanpa perlu kamu tulis format apapun.
-11. GAMBAR TERLAMPIR: Jika ada notifikasi "[GAMBAR TERLAMPIR]" di pesan user, WAJIB gunakan ACTION: analyze_image di turn pertama sebelum melanjutkan task lain.
-12. [KEYWORD: WEB] Jika pesan user mengandung: "masuk web", "buka web", "cari di web", "fetch", "analisis web ini", "lihat url" → WAJIB gunakan ACTION: fetch_url atau ACTION: search_web.
-13. [KEYWORD: ANALISIS GAMBAR] Jika pesan user mengandung: "analisis gambar", "lihat gambar", "apa di gambar" → WAJIB ACTION: analyze_image.
-14. [KEYWORD: INFO/REKOMENDASI] Jika pesan user bertanya/minta rekomendasi (kata: "rekomendasi", "rekomen", "bagus", "terbaik", "pilih", "mana yang", "apa yang", "apakah", "gimana", "cara", "jelaskan") → LANGSUNG ke FINAL ANSWER. DILARANG buat file apapun.
-15. [MODE HINT] System akan inject [MODE_HINT: ...] di pesan user — WAJIB ikuti hint tersebut.
-16. ANTI-HALUSINASI: JANGAN PERNAH menulis raw base64 atau data binary di output/FINAL ANSWER. Jika perlu kirim file, WAJIB pakai create_file + get_download. Raw base64 di output = bug fatal.
-17. ANTI-HALUSINASI: Jangan karang fakta, angka, atau klaim teknis yang tidak kamu yakin. Jika ragu, gunakan ACTION: deep_reason untuk verifikasi sebelum menjawab.
-18. GROUNDING: Untuk task yang butuh keakuratan tinggi (analisis teknis, debugging, arsitektur), WAJIB gunakan ACTION: deep_reason atau ACTION: claude_reason di awal sebelum FINAL ANSWER.
-
-═══════════════════════════════════════════════════════════
-TOOLS TERSEDIA
-═══════════════════════════════════════════════════════════
-
-analyze_image  - Analisis gambar yang dilampirkan user. Input: pertanyaan/instruksi (kosong=analisis umum)
-calculate      - Math expression
-get_time       - Current datetime
-remember       - Save to agent memory (key=value)
-recall         - Retrieve from memory
-list_memory    - List all memories
-save_ai_memory - Permanent AI memory
-fetch_url      - Web scraping
-search_web     - DuckDuckGo search
-uuid           - Generate UUID
-encode_b64     - Base64 encode
-decode_b64     - Base64 decode
-format_json    - Pretty JSON
-regex_test     - Test regex (pattern|||string)
-word_count     - Count words/chars
-create_file    - Create file (name|||content)
-write_file     - Write/overwrite file (name|||content)
-read_file      - Read file
-edit_file      - Edit file (name|||old|||new)
-append_file    - Append to file
-list_files     - List files
-delete_file    - Delete file
-get_download   - Generate download button (namafile) — WAJIB setelah create/write file agar user bisa download
-deep_reason    - Analisis grounded anti-halu, reasoning step-by-step. Input: pertanyaan/klaim yang perlu diverifikasi
-claude_reason  - Deep reasoning pakai DeepSeek R1 FREE (setara Opus level, gratis). Input: task kompleks yang butuh analisis tingkat tinggi
-shell_exec     - Execute shell command
-timer_set      - Set timer/reminder
-process_list   - List processes
-sqlite         - Query/execute SQL on SQLite database (action: query/execute/tables/schema, db_path, sql)
-data_viz       - Generate chart PNG (chart_type: bar/line/pie/scatter, labels, values, title, output_path)
-token_counter  - Count tokens in text (text, model)
-screenshot     - Screenshot a webpage URL to PNG (url, output_path)
-whois          - WHOIS domain lookup (domain)
-dns_lookup     - DNS record lookup (domain, record_type: A/MX/TXT/CNAME/NS)
-url_meta       - Extract OG/meta tags from URL (url)
-md_to_html     - Convert Markdown to HTML (markdown, full_page, output_path)
-html_to_md     - Convert HTML to Markdown (html or url, output_path)
-ocr            - Extract text from image file (image_path, lang)
-image_resize   - Resize/crop/rotate image (image_path, action, width, height, output_path)
-git            - Git operations (action: init/status/add/commit/log/diff/branch/pull/push, path, args)
-weather        - Current weather + forecast (city or lat/lon, forecast_days)
-cron_scheduler - Schedule recurring tasks (action: add/list/remove/due/clear, task, interval_minutes)
-
-═══════════════════════════════════════════════════════════
-CONTOH ALUR BENAR
-═══════════════════════════════════════════════════════════
-
-User: "Buat file lua hello world, bisa didownload"
-
-[MODE: PLANNER]
-[PLAN]
-Task: Buat file Lua dan sediakan download untuk user
-Step 1: Tulis konten Lua ke file → Tool: create_file → Expected: konfirmasi file dibuat
-Step 2: Generate tombol download → Tool: get_download → Expected: [FILE_EXPORT:...] marker
-Dependencies: Step 1 → Step 2
-Confidence: 99%
-
-[MODE: EXECUTOR]
-THOUGHT: Buat file Lua dulu dengan konten yang benar
-ACTION: create_file
-INPUT: hello.lua|||print("Hello World!")
-
-[MODE: EXECUTOR]
-THOUGHT: File sudah dibuat, sekarang generate download marker pakai get_download
-ACTION: get_download
-INPUT: hello.lua
-
-[MODE: CRITIC]
-[REFLECT]
-✓ Strengths: File dibuat benar, marker download valid
-✗ Weaknesses: -
-? Questions: -
-Confidence: 99%
-Decision: DELIVER
-
-[MODE: FINAL]
-FINAL ANSWER: File Lua berhasil dibuat! Klik tombol di bawah untuk download:
-
-[FILE_EXPORT:hello.lua:cHJpbnQoIkhlbGxvIFdvcmxkISIp:text/x-lua]
-
-File siap didownload. 🎉
-
-[[MEM: last_file=hello.lua]]
+ATURAN KERAS:
+1. DILARANG tulis [FILE_EXPORT:...] manual — hanya get_download yang generate ini
+2. JANGAN tulis raw base64 di FINAL ANSWER
+3. Setelah get_download → langsung FINAL ANSWER biasa
+4. [GAMBAR TERLAMPIR] selalu ada analyze_image di tools → pakai itu dulu
 `;
 
 // NOTE: AGENT_SYS updated to GazccAgent Pro v2 with full PLANNER/EXECUTOR/CRITIC cycle
 
 // ── Keyword-based task mode detector ─────────────────────────────────────────
-function detectTaskMode(msg){
-  var m=(msg||'').toLowerCase();
-  var fileKw=['buatkan file','buat file','tulis file','simpan file','download file','save file','generate file','bikin file','create file','write file','buatin file'];
-  for(var i=0;i<fileKw.length;i++) if(m.indexOf(fileKw[i])>=0) return 'FILE';
-  var webKw=['masuk web','buka web','cari di web','fetch url','analisis web','lihat url','scrape','web scraping','search web','cari web'];
-  for(var i=0;i<webKw.length;i++) if(m.indexOf(webKw[i])>=0) return 'WEB';
-  var imgKw=['analisis gambar','lihat gambar','apa di gambar','analyze image','deskripsikan gambar','apa isi gambar'];
-  for(var i=0;i<imgKw.length;i++) if(m.indexOf(imgKw[i])>=0) return 'IMAGE';
-  return 'INFO';
+// ══════════════════════════════════════════════════
+// TOOL REGISTRY — deskripsi lengkap setiap tool
+// Hanya di-inject ke prompt kalau relevan dengan pesan user
+// ══════════════════════════════════════════════════
+var TOOL_REGISTRY = {
+  // FILE
+  create_file:    'create_file    — Buat file baru.\n  INPUT: namafile.ext|||konten_file',
+  write_file:     'write_file     — Overwrite file yang ada.\n  INPUT: namafile.ext|||konten_baru',
+  read_file:      'read_file      — Baca isi file.\n  INPUT: namafile.ext',
+  edit_file:      'edit_file      — Edit bagian file (find & replace).\n  INPUT: namafile.ext|||teks_lama|||teks_baru',
+  append_file:    'append_file    — Tambah konten di akhir file.\n  INPUT: namafile.ext|||konten_tambahan',
+  list_files:     'list_files     — List semua file yang ada.\n  INPUT: (kosong)',
+  delete_file:    'delete_file    — Hapus file.\n  INPUT: namafile.ext',
+  get_download:   'get_download   — Generate tombol download untuk user. WAJIB dipanggil setelah create/write file.\n  INPUT: namafile.ext',
+  // WEB
+  fetch_url:      'fetch_url      — Ambil konten dari URL/website.\n  INPUT: https://url-target.com',
+  search_web:     'search_web     — Cari informasi di web via DuckDuckGo.\n  INPUT: query pencarian',
+  url_meta:       'url_meta       — Ambil meta/OG tags dari URL.\n  INPUT: https://url-target.com',
+  screenshot:     'screenshot     — Screenshot halaman web jadi PNG.\n  INPUT: https://url-target.com|||output.png',
+  whois:          'whois          — WHOIS lookup domain.\n  INPUT: domain.com',
+  dns_lookup:     'dns_lookup     — DNS record lookup.\n  INPUT: domain.com|||A  (record type: A/MX/TXT/CNAME/NS)',
+  // IMAGE
+  analyze_image:  'analyze_image  — Analisis gambar yang dilampirkan user.\n  INPUT: pertanyaan atau instruksi (kosong = analisis umum)',
+  ocr:            'ocr            — Ekstrak teks dari file gambar.\n  INPUT: path_gambar|||id  (lang opsional)',
+  image_resize:   'image_resize   — Resize/crop/rotate gambar.\n  INPUT: path|||action|||width|||height|||output',
+  // MATH & DATA
+  calculate:      'calculate      — Hitung ekspresi matematika.\n  INPUT: 2 + 2 * 10 / (3-1)',
+  data_viz:       'data_viz       — Buat chart PNG (bar/line/pie/scatter).\n  INPUT: chart_type|||label1,label2|||val1,val2|||Judul|||output.png',
+  sqlite:         'sqlite         — Query/execute SQL di SQLite.\n  INPUT: query|||db.sqlite|||SELECT * FROM tabel',
+  // MEMORY
+  remember:       'remember       — Simpan ke memori sesi agent.\n  INPUT: key=value',
+  recall:         'recall         — Ambil dari memori sesi.\n  INPUT: key',
+  list_memory:    'list_memory    — List semua memori sesi.\n  INPUT: (kosong)',
+  save_ai_memory: 'save_ai_memory — Simpan ke memori permanen AI.\n  INPUT: key=value',
+  // SYSTEM
+  shell_exec:     'shell_exec     — Jalankan perintah shell/bash.\n  INPUT: perintah shell',
+  process_list:   'process_list   — List proses yang berjalan.\n  INPUT: (kosong)',
+  git:            'git            — Operasi Git.\n  INPUT: action|||path|||args  (action: init/status/add/commit/log/diff/branch)',
+  // CONVERT & FORMAT
+  encode_b64:     'encode_b64     — Base64 encode teks.\n  INPUT: teks yang mau di-encode',
+  decode_b64:     'decode_b64     — Base64 decode.\n  INPUT: string_base64',
+  format_json:    'format_json    — Pretty-print JSON.\n  INPUT: {"key":"value"}',
+  md_to_html:     'md_to_html     — Konversi Markdown ke HTML.\n  INPUT: teks_markdown|||true|||output.html',
+  html_to_md:     'html_to_md     — Konversi HTML ke Markdown.\n  INPUT: teks_html atau https://url|||output.md',
+  regex_test:     'regex_test     — Test regex terhadap string.\n  INPUT: pattern|||string_yang_diuji',
+  word_count:     'word_count     — Hitung kata/karakter.\n  INPUT: teks yang mau dihitung',
+  token_counter:  'token_counter  — Hitung tokens teks.\n  INPUT: teks|||nama_model',
+  uuid:           'uuid           — Generate UUID random.\n  INPUT: (kosong)',
+  // UTILITY
+  get_time:       'get_time       — Ambil waktu & tanggal sekarang.\n  INPUT: (kosong)',
+  weather:        'weather        — Cuaca & forecast.\n  INPUT: nama_kota atau lat,lon|||jumlah_hari',
+  timer_set:      'timer_set      — Set timer/pengingat.\n  INPUT: detik|||pesan_pengingat',
+  cron_scheduler: 'cron_scheduler — Jadwal task berulang.\n  INPUT: action|||task|||interval_menit  (action: add/list/remove/due/clear)',
+  deep_reason:    'deep_reason    — Reasoning mendalam anti-halusinasi, step-by-step.\n  INPUT: pertanyaan atau klaim yang perlu diverifikasi',
+  claude_reason:  'claude_reason  — Deep reasoning level tinggi untuk task kompleks.\n  INPUT: deskripsi task kompleks'
+};
+
+// Keyword → tool groups mapping
+var TOOL_TRIGGERS = [
+  { keys:['buat file','buatkan file','tulis file','simpan file','bikin file','create file','write file','buatin file','generate file','save file','download file','buat script','buat kode','buat program','buat html','buat css','buat js','buat python','buat lua'],
+    tools:['create_file','write_file','read_file','edit_file','append_file','list_files','delete_file','get_download'] },
+  { keys:['buka web','masuk web','cari di web','fetch','scrape','lihat url','analisis web','search web','cari web','buka url','ambil dari'],
+    tools:['fetch_url','search_web','url_meta','screenshot','whois','dns_lookup'] },
+  { keys:['analisis gambar','lihat gambar','apa di gambar','deskripsikan gambar','apa isi gambar','ocr','ekstrak teks gambar'],
+    tools:['analyze_image','ocr','image_resize'] },
+  { keys:['hitung','kalkulasi','berapa','rumus','matematika','kalkul'],
+    tools:['calculate'] },
+  { keys:['chart','grafik','visualisasi','plot','bar chart','pie chart','line chart'],
+    tools:['data_viz'] },
+  { keys:['sql','database','sqlite','query','tabel'],
+    tools:['sqlite'] },
+  { keys:['ingat','simpan','remember','memory','memori'],
+    tools:['remember','recall','list_memory','save_ai_memory'] },
+  { keys:['jalankan','execute','shell','bash','command','terminal','run','script','git','commit','push'],
+    tools:['shell_exec','process_list','git'] },
+  { keys:['base64','encode','decode','json','markdown','html','regex','convert','konversi'],
+    tools:['encode_b64','decode_b64','format_json','md_to_html','html_to_md','regex_test'] },
+  { keys:['cuaca','weather','suhu','forecast'],
+    tools:['weather'] },
+  { keys:['uuid','waktu','tanggal','jam','timer'],
+    tools:['uuid','get_time','timer_set'] },
+  { keys:['analisis','reasoning','verifikasi','cek fakta','deep reason'],
+    tools:['deep_reason','claude_reason'] },
+  { keys:['token','hitung kata','word count'],
+    tools:['word_count','token_counter'] }
+];
+
+// Inject tool descriptions yang relevan ke prompt
+function getToolInjection(msg, hasImages) {
+  var m = (msg||'').toLowerCase();
+  var needed = {};
+
+  // Gambar otomatis inject analyze_image
+  if (hasImages) { needed['analyze_image'] = true; }
+
+  TOOL_TRIGGERS.forEach(function(trigger) {
+    for (var i = 0; i < trigger.keys.length; i++) {
+      if (m.indexOf(trigger.keys[i]) >= 0) {
+        trigger.tools.forEach(function(t){ needed[t] = true; });
+        break;
+      }
+    }
+  });
+
+  var toolNames = Object.keys(needed);
+  if (!toolNames.length) return '';
+
+  var lines = toolNames.map(function(t){ return TOOL_REGISTRY[t] || t; });
+  return '\n\n[TOOLS TERSEDIA UNTUK TASK INI]\n' + lines.join('\n');
 }
-function getModeHint(mode){
-  if(mode==='FILE') return '\n\n[MODE_HINT: USER MINTA FILE — gunakan create_file lalu get_download.]';
-  if(mode==='WEB')  return '\n\n[MODE_HINT: USER MINTA WEB — gunakan fetch_url atau search_web. JANGAN buat file.]';
-  if(mode==='IMAGE')return '\n\n[MODE_HINT: USER MINTA ANALISIS GAMBAR — gunakan analyze_image. JANGAN buat file.]';
-  return '\n\n[MODE_HINT: INFO/REKOMENDASI — jawab langsung di FINAL ANSWER. DILARANG KERAS pakai create_file. Cukup teks biasa.]';
-}
+
+// Legacy compat stubs
+function detectTaskMode(msg){ return 'AUTO'; }
+function getModeHint(mode){ return ''; }
 
 
 // ---- AGENT MODE INDICATOR ----
@@ -2279,7 +2234,7 @@ async function _llmCall(messages,model,onContinue){
     var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
       headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-      body:JSON.stringify({model:model,messages:curMessages,max_tokens:8192,temperature:0.7})
+      body:JSON.stringify({model:model,messages:curMessages,max_tokens:4096,temperature:0.7})
     });
     if(!res.ok){
       var errBody='';try{var ej=await res.json();errBody=ej.error&&ej.error.message?ej.error.message:JSON.stringify(ej);}catch(pe){errBody=await res.text().catch(function(){return '';});}
@@ -2347,7 +2302,7 @@ async function runAgent(userMsg,files){
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
-    var agentModel=document.getElementById('msel').value||'minimax/minimax-m2.7';
+    var agentModel=document.getElementById('msel').value||'moonshotai/kimi-k2.6';
 
     // ── Bangun messages array multi-turn (bukan digabung jadi 1 string) ──
     // Ini biar prompt user tidak kepotong dan context window lebih efisien
@@ -2355,7 +2310,7 @@ async function runAgent(userMsg,files){
 
     // Inject history sebagai multi-turn messages
     if(hist&&hist.length){
-      hist.slice(-50).forEach(function(m){
+      hist.slice(-10).forEach(function(m){
         if(m.role==='system')return;
         var c=typeof m.content==='string'?m.content:(Array.isArray(m.content)?m.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'[file]');
         if(c)messages.push({role:m.role,content:c});
@@ -2371,11 +2326,12 @@ async function runAgent(userMsg,files){
       });
     }
     // ── Keyword mode detection & hint injection ──
-    var _taskMode=detectTaskMode(userMsg);
-    var _modeHint=getModeHint(_taskMode);
-    var _userMsgHinted=(userMsg||'')+_modeHint;
-    userContent.push({type:'text',text:_userMsgHinted});
-    messages.push({role:'user',content:(userContent.length===1)?_userMsgHinted:userContent});
+    // Dynamic tool injection — hanya inject deskripsi tool yang relevan
+    var _hasImgs=(_agentCurrentImages&&_agentCurrentImages.length>0);
+    var _toolInject=getToolInjection(userMsg,_hasImgs);
+    var _userMsgFinal=(userMsg||'')+_toolInject;
+    userContent.push({type:'text',text:_userMsgFinal});
+    messages.push({role:'user',content:(userContent.length===1)?_userMsgFinal:userContent});
 
     var MAX_TURNS=12;
     var finalAnswer='';
@@ -2687,7 +2643,7 @@ async function send(){
     var imageFiles=files.filter(function(f){return f.isImg;});
     var nonImageFiles=files.filter(function(f){return !f.isImg;});
     var hasImages=imageFiles.length>0;
-    var model=document.getElementById('msel').value||'minimax/minimax-m2.7';
+    var model=document.getElementById('msel').value||'moonshotai/kimi-k2.6';
     var content=[];
 
     if(hasImages){
