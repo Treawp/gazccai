@@ -2047,9 +2047,9 @@ KAPAN LANGSUNG FINAL ANSWER (tanpa tools):
 - Pertanyaan, penjelasan, rekomendasi, chat biasa → LANGSUNG jawab
 
 KAPAN PAKAI TOOLS:
-- Lihat bagian [TOOLS TERSEDIA UNTUK TASK INI] di bawah pesan user
-- Kalau section itu ADA → tools tersebut relevan untuk task ini, gunakan sesuai kebutuhan
-- Kalau section itu TIDAK ADA → jangan pakai tools, jawab langsung
+- Kalau task butuh fetch URL, cari info real-time, buat/baca file, kalkulasi, analisis gambar, query DB, dsb → PAKAI tools yang sesuai
+- Bagian [TOOLS TERSEDIA UNTUK TASK INI] di bawah pesan user menampilkan tools yang paling relevan → prioritaskan tools itu
+- Kalau section tersebut tidak muncul, kamu TETAP BOLEH dan HARUS pakai tools lain yang kamu miliki jika task membutuhkannya
 
 FORMAT PAKAI TOOL:
 THOUGHT: [kenapa perlu tool ini]
@@ -2174,7 +2174,14 @@ function getToolInjection(msg, hasImages) {
   });
 
   var toolNames = Object.keys(needed);
-  if (!toolNames.length) return '';
+
+  // Fallback: kalau zero keyword match tapi ada tools di registry,
+  // inject semua tool names saja (tanpa deskripsi panjang) supaya model tahu apa yang ada
+  if (!toolNames.length) {
+    var allTools = Object.keys(TOOL_REGISTRY);
+    return '\n\n[TOOLS TERSEDIA — gunakan jika task membutuhkan]\n' +
+      allTools.map(function(t){ return TOOL_REGISTRY[t] || t; }).join('\n');
+  }
 
   var lines = toolNames.map(function(t){ return TOOL_REGISTRY[t] || t; });
   return '\n\n[TOOLS TERSEDIA UNTUK TASK INI]\n' + lines.join('\n');
