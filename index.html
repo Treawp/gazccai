@@ -1191,13 +1191,26 @@ function _rebuildMsgsFromHist(){
     var content=typeof h.content==='string'?h.content:(Array.isArray(h.content)?h.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'[multipart]');
     var cssRole=role==='assistant'?'bot':role;
     var wrap=document.createElement('div');wrap.className='msg '+cssRole;
-    var lbl=document.createElement('div');lbl.className='lbl';lbl.textContent=role==='user'?'YOU':BOT;
-    var bub=document.createElement('div');bub.className='bubble';
-    var txt=document.createElement('div');
-    txt.innerHTML=(role==='assistant')?renderFinalAnswer(content):formatText(content);
-    bub.appendChild(txt);
-    if(role==='assistant'){addCopyBtn(bub,content);}
-    wrap.appendChild(lbl);wrap.appendChild(bub);
+    if(role==='assistant'&&h.isAgent){
+      var lbl=document.createElement('div');lbl.className='lbl';lbl.textContent=BOT+' [GAZCCTHINKING]';
+      var bub=document.createElement('div');bub.className='bubble';bub.style.borderLeft='2px solid var(--orange)';
+      var hdr=document.createElement('div');
+      hdr.innerHTML='<div class="agent-info-hdr">\u26a1 FINAL ANSWER ('+(h.agentTurns||'?')+' turns \u00b7 '+(h.agentTime||'?')+'s)</div>';
+      var agFinal=document.createElement('div');agFinal.className='agent-final';
+      agFinal.innerHTML=renderFinalAnswer(content);
+      hdr.appendChild(agFinal);
+      bub.appendChild(hdr);
+      addCopyBtn(bub,content);
+      wrap.appendChild(lbl);wrap.appendChild(bub);
+    }else{
+      var lbl=document.createElement('div');lbl.className='lbl';lbl.textContent=role==='user'?'YOU':BOT;
+      var bub=document.createElement('div');bub.className='bubble';
+      var txt=document.createElement('div');
+      txt.innerHTML=(role==='assistant')?renderFinalAnswer(content):formatText(content);
+      bub.appendChild(txt);
+      if(role==='assistant'){addCopyBtn(bub,content);}
+      wrap.appendChild(lbl);wrap.appendChild(bub);
+    }
     chatEl.appendChild(wrap);
   });
   chatEl.style.bottom='70px';chatEl.scrollTop=chatEl.scrollHeight;badge();
@@ -2622,7 +2635,7 @@ async function runAgent(userMsg,files){
     typeNext();
 
     hist.push({role:'user',content:userMsg||''});
-    hist.push({role:'assistant',content:finalAnswer||'[agent done]'});
+    hist.push({role:'assistant',content:finalAnswer||'[agent done]',isAgent:true,agentTurns:turnCount,agentTime:Math.round((Date.now()-agStartTime)/1000)});
     if(hist.length>60)hist=hist.slice(-60);
     hideAgentMode();
     badge();
