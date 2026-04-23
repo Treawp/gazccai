@@ -683,12 +683,8 @@ strong{color:var(--txt);font-weight:600}
     </div>
     <!-- Hidden select still used by JS -->
     <select id="msel" style="display:none">
-      <optgroup label="── Qwen3 (Free) ──">
-        <option value="minimax/minimax-m2.7" selected>MiniMax M2.7 ⚡</option>
-        <option value="minimax/minimax-m2.7">MiniMax M2.7 ⚡</option>
-        <option value="minimax/minimax-m2.7">MiniMax M2.7 🧠</option>
-      </optgroup>
       <optgroup label="── Vision Support 👁 ──">
+        <option value="minimax/minimax-m2.7" data-vision="1" selected>MiniMax M2.7 👁⚡</option>
         <option value="moonshotai/kimi-k2.5" data-vision="1">Kimi K2.5 👁</option>
         <option value="google/gemini-2.0-flash-001" data-vision="1">Gemini 2.0 Flash 👁</option>
         <option value="google/gemini-flash-1.5" data-vision="1">Gemini 1.5 Flash 👁⚡</option>
@@ -699,7 +695,6 @@ strong{color:var(--txt);font-weight:600}
       </optgroup>
       <optgroup label="── Text Only ──">
         <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (Free) 💻</option>
-        <option value="minimax/minimax-m2.7">DeepSeek R1 (Free) 🧠</option>
         <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free) 🦙</option>
         <option value="nvidia/llama-3.1-nemotron-ultra-253b-v1:free">Nemotron 253B (Free)</option>
         <option value="mistralai/mistral-nemo:free">Mistral Nemo (Free)</option>
@@ -766,9 +761,9 @@ strong{color:var(--txt);font-weight:600}
 <script>
 // Model Sheet Logic
 var modelList = [
-  {value:'minimax/minimax-m2.7',name:'MiniMax M2.7',desc:'Free · Cepat & Powerful',vision:false},
-  {value:'minimax/minimax-m2.7',name:'MiniMax M2.7',desc:'Free · Ringan',vision:false},
-  {value:'minimax/minimax-m2.7',name:'MiniMax M2.7',desc:'Free · Reasoning',vision:false},
+  {value:'minimax/minimax-m2.7',name:'MiniMax M2.7',desc:'Vision · Cepat & Powerful 👁',vision:true},
+  {value:'minimax/minimax-m2.7',name:'MiniMax M2.7',desc:'Vision · Cepat & Powerful 👁',vision:true},
+  {value:'minimax/minimax-m2.7',name:'MiniMax M2.7',desc:'Vision · Cepat & Powerful 👁',vision:true},
   {value:'moonshotai/kimi-k2.5',name:'Kimi K2.5',desc:'Vision Support 👁',vision:true},
   {value:'google/gemini-2.0-flash-001',name:'Gemini 2.0 Flash',desc:'Vision Support 👁',vision:true},
   {value:'google/gemini-flash-1.5',name:'Gemini 1.5 Flash',desc:'Vision · Cepat 👁',vision:true},
@@ -1191,7 +1186,7 @@ function _rebuildMsgsFromHist(){
     var content=typeof h.content==='string'?h.content:(Array.isArray(h.content)?h.content.filter(function(x){return x.type==='text';}).map(function(x){return x.text;}).join('\n'):'[multipart]');
     var cssRole=role==='assistant'?'bot':role;
     var wrap=document.createElement('div');wrap.className='msg '+cssRole;
-    if(role==='assistant'&&h.isAgent){
+    if(role==='assistant'&&(h.isAgent||agentMode)){
       var lbl=document.createElement('div');lbl.className='lbl';lbl.textContent=BOT+' [GAZCCTHINKING]';
       var bub=document.createElement('div');bub.className='bubble';bub.style.borderLeft='2px solid var(--orange)';
       var hdr=document.createElement('div');
