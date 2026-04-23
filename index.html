@@ -817,7 +817,7 @@ function updateModelPill(){
   else if(pill) pill.textContent=val.split('/').pop();
 }
 // Init pill on load
-document.addEventListener('DOMContentLoaded',function(){updateModelPill();});
+document.addEventListener('DOMContentLoaded',function(){updateModelPill();_applyAgentUI();});
 // Also call after a short delay
 setTimeout(updateModelPill,100);
 </script>
@@ -1857,6 +1857,7 @@ async function sendStream(messages,model){
 
 // ---- AGENT MODE ----
 var agentMode=false;
+try{agentMode=localStorage.getItem('gz_agent_mode')==='1';}catch(e){agentMode=false;}
 var agentMemory={};
 try{agentMemory=JSON.parse(localStorage.getItem('gz_mem')||'{}');}catch(e){agentMemory={};}
 function saveAgentMemory(){try{localStorage.setItem('gz_mem',JSON.stringify(agentMemory));}catch(e){}}
@@ -1869,10 +1870,18 @@ function downloadAgentFile(name){var f=agentFiles[name];if(!f)return;var blob=ne
 
 function toggleAgent(){
   agentMode=!agentMode;
-  var aBtn=document.getElementById('agentToggle');
-  aBtn.classList.toggle('active',agentMode);
-  document.getElementById('inp').placeholder=agentMode?'Minta GazccThinking agent selesaikan task...':'Ketik pesan... (Ctrl+V paste gambar)';
+  try{localStorage.setItem('gz_agent_mode',agentMode?'1':'0');}catch(e){}
+  _applyAgentUI();
   if(agentMode) showAgentPopup();
+}
+
+function _applyAgentUI(){
+  var aBtn=document.getElementById('agentToggle');
+  var pill=document.getElementById('agentTogglePill');
+  if(aBtn) aBtn.classList.toggle('active',agentMode);
+  if(pill) pill.classList.toggle('active',agentMode);
+  var inp=document.getElementById('inp');
+  if(inp) inp.placeholder=agentMode?'Minta GazccThinking agent selesaikan task...':'Ketik pesan... (Ctrl+V paste gambar)';
 }
 
 function dismissAgentPopup(){
