@@ -924,7 +924,7 @@ function buildContextPrompt(){
   parts.push('- Jawaban harus KONSISTEN dan RELEVAN dengan alur percakapan aktif.]');
   
   // Instruksi simpan memori
-  parts.push('\n[FILE RULE: Jika user minta file untuk download, JANGAN tulis [DOWNLOAD_xxx] atau [FILE_EXPORT:...]. Cukup tulis kode dalam code block — tombol download ⬇️ DL otomatis tersedia.]');
+  parts.push('\n[FILE RULE: Jika user minta file untuk download, gunakan write_file lalu export_file_base64 dan sertakan marker [FILE_EXPORT:...] yang dikembalikan tool tersebut di Final Answer. JANGAN buat marker [FILE_EXPORT:...] secara manual tanpa menggunakan tool.]');
   parts.push('\n[MEMORY SAVING:');
   parts.push('- Simpan info penting user dengan format: [[MEM: key=value]]');
   parts.push('- Contoh: [[MEM: nama_user=Ega]], [[MEM: project_aktif=upang_script]], [[MEM: bahasa=Lua]]');
