@@ -2039,150 +2039,26 @@ var AGENT_TOOLS={
   }}
 };
 
-var AGENT_SYS=`Kamu adalah GazccAgent Pro — AI agent autonomous yang CERDAS dan EFISIEN.
+var AGENT_SYS=`Kamu adalah GazccAgent Pro — AI agent autonomous yang cerdas.
 
-PRINSIP UTAMA: Jawab langsung kalau bisa. Pakai tools HANYA kalau memang dibutuhkan.
-
-KAPAN LANGSUNG FINAL ANSWER (tanpa tools):
-- Pertanyaan, penjelasan, rekomendasi, chat biasa → LANGSUNG jawab
-
-KAPAN PAKAI TOOLS:
-- Kalau task butuh fetch URL, cari info real-time, buat/baca file, kalkulasi, analisis gambar, query DB, dsb → PAKAI tools yang sesuai
-- Bagian [TOOLS TERSEDIA UNTUK TASK INI] di bawah pesan user menampilkan tools yang paling relevan → prioritaskan tools itu
-- Kalau section tersebut tidak muncul, kamu TETAP BOLEH dan HARUS pakai tools lain yang kamu miliki jika task membutuhkannya
-
-FORMAT PAKAI TOOL:
-THOUGHT: [kenapa perlu tool ini]
+FORMAT WAJIB:
+THOUGHT: [alasan singkat]
 ACTION: [nama_tool]
 INPUT: [parameter]
-
-Setelah semua tools selesai:
+OBSERVATION: [hasil tool]
+... (ulangi kalau perlu) ...
 FINAL ANSWER: [jawaban lengkap]
 
-ATURAN KERAS:
-1. DILARANG tulis [FILE_EXPORT:...] manual — hanya get_download yang generate ini
-2. JANGAN tulis raw base64 di FINAL ANSWER
-3. Setelah get_download → langsung FINAL ANSWER biasa
-4. [GAMBAR TERLAMPIR] selalu ada analyze_image di tools → pakai itu dulu
+ATURAN:
+1. Task chat/info/tanya biasa → LANGSUNG tulis FINAL ANSWER, jangan pakai tools
+2. Pakai tools HANYA kalau user jelas minta (buat file, cari web, hitung, gambar, dll)
+3. DILARANG tulis [FILE_EXPORT:...] manual — hanya get_download yang boleh
+4. JANGAN tulis raw base64 di FINAL ANSWER
+5. Setelah get_download berhasil → langsung FINAL ANSWER
+6. Ada gambar dari user → ACTION: analyze_image dulu
+
+TOOLS: analyze_image|calculate|get_time|remember|recall|list_memory|save_ai_memory|fetch_url|search_web|uuid|encode_b64|decode_b64|format_json|regex_test|word_count|create_file|write_file|read_file|edit_file|append_file|list_files|delete_file|get_download|deep_reason|claude_reason|shell_exec|timer_set|process_list|sqlite|data_viz|token_counter|screenshot|whois|dns_lookup|url_meta|md_to_html|html_to_md|ocr|image_resize|git|weather|cron_scheduler
 `;
-
-// NOTE: AGENT_SYS updated to GazccAgent Pro v2 with full PLANNER/EXECUTOR/CRITIC cycle
-
-// ── Keyword-based task mode detector ─────────────────────────────────────────
-// ══════════════════════════════════════════════════
-// TOOL REGISTRY — deskripsi lengkap setiap tool
-// Hanya di-inject ke prompt kalau relevan dengan pesan user
-// ══════════════════════════════════════════════════
-var TOOL_REGISTRY = {
-  // FILE
-  create_file:    'create_file    — Buat file baru.\n  INPUT: namafile.ext|||konten_file',
-  write_file:     'write_file     — Overwrite file yang ada.\n  INPUT: namafile.ext|||konten_baru',
-  read_file:      'read_file      — Baca isi file.\n  INPUT: namafile.ext',
-  edit_file:      'edit_file      — Edit bagian file (find & replace).\n  INPUT: namafile.ext|||teks_lama|||teks_baru',
-  append_file:    'append_file    — Tambah konten di akhir file.\n  INPUT: namafile.ext|||konten_tambahan',
-  list_files:     'list_files     — List semua file yang ada.\n  INPUT: (kosong)',
-  delete_file:    'delete_file    — Hapus file.\n  INPUT: namafile.ext',
-  get_download:   'get_download   — Generate tombol download untuk user. WAJIB dipanggil setelah create/write file.\n  INPUT: namafile.ext',
-  // WEB
-  fetch_url:      'fetch_url      — Ambil konten dari URL/website.\n  INPUT: https://url-target.com',
-  search_web:     'search_web     — Cari informasi di web via DuckDuckGo.\n  INPUT: query pencarian',
-  url_meta:       'url_meta       — Ambil meta/OG tags dari URL.\n  INPUT: https://url-target.com',
-  screenshot:     'screenshot     — Screenshot halaman web jadi PNG.\n  INPUT: https://url-target.com|||output.png',
-  whois:          'whois          — WHOIS lookup domain.\n  INPUT: domain.com',
-  dns_lookup:     'dns_lookup     — DNS record lookup.\n  INPUT: domain.com|||A  (record type: A/MX/TXT/CNAME/NS)',
-  // IMAGE
-  analyze_image:  'analyze_image  — Analisis gambar yang dilampirkan user.\n  INPUT: pertanyaan atau instruksi (kosong = analisis umum)',
-  ocr:            'ocr            — Ekstrak teks dari file gambar.\n  INPUT: path_gambar|||id  (lang opsional)',
-  image_resize:   'image_resize   — Resize/crop/rotate gambar.\n  INPUT: path|||action|||width|||height|||output',
-  // MATH & DATA
-  calculate:      'calculate      — Hitung ekspresi matematika.\n  INPUT: 2 + 2 * 10 / (3-1)',
-  data_viz:       'data_viz       — Buat chart PNG (bar/line/pie/scatter).\n  INPUT: chart_type|||label1,label2|||val1,val2|||Judul|||output.png',
-  sqlite:         'sqlite         — Query/execute SQL di SQLite.\n  INPUT: query|||db.sqlite|||SELECT * FROM tabel',
-  // MEMORY
-  remember:       'remember       — Simpan ke memori sesi agent.\n  INPUT: key=value',
-  recall:         'recall         — Ambil dari memori sesi.\n  INPUT: key',
-  list_memory:    'list_memory    — List semua memori sesi.\n  INPUT: (kosong)',
-  save_ai_memory: 'save_ai_memory — Simpan ke memori permanen AI.\n  INPUT: key=value',
-  // SYSTEM
-  shell_exec:     'shell_exec     — Jalankan perintah shell/bash.\n  INPUT: perintah shell',
-  process_list:   'process_list   — List proses yang berjalan.\n  INPUT: (kosong)',
-  git:            'git            — Operasi Git.\n  INPUT: action|||path|||args  (action: init/status/add/commit/log/diff/branch)',
-  // CONVERT & FORMAT
-  encode_b64:     'encode_b64     — Base64 encode teks.\n  INPUT: teks yang mau di-encode',
-  decode_b64:     'decode_b64     — Base64 decode.\n  INPUT: string_base64',
-  format_json:    'format_json    — Pretty-print JSON.\n  INPUT: {"key":"value"}',
-  md_to_html:     'md_to_html     — Konversi Markdown ke HTML.\n  INPUT: teks_markdown|||true|||output.html',
-  html_to_md:     'html_to_md     — Konversi HTML ke Markdown.\n  INPUT: teks_html atau https://url|||output.md',
-  regex_test:     'regex_test     — Test regex terhadap string.\n  INPUT: pattern|||string_yang_diuji',
-  word_count:     'word_count     — Hitung kata/karakter.\n  INPUT: teks yang mau dihitung',
-  token_counter:  'token_counter  — Hitung tokens teks.\n  INPUT: teks|||nama_model',
-  uuid:           'uuid           — Generate UUID random.\n  INPUT: (kosong)',
-  // UTILITY
-  get_time:       'get_time       — Ambil waktu & tanggal sekarang.\n  INPUT: (kosong)',
-  weather:        'weather        — Cuaca & forecast.\n  INPUT: nama_kota atau lat,lon|||jumlah_hari',
-  timer_set:      'timer_set      — Set timer/pengingat.\n  INPUT: detik|||pesan_pengingat',
-  cron_scheduler: 'cron_scheduler — Jadwal task berulang.\n  INPUT: action|||task|||interval_menit  (action: add/list/remove/due/clear)',
-  deep_reason:    'deep_reason    — Reasoning mendalam anti-halusinasi, step-by-step.\n  INPUT: pertanyaan atau klaim yang perlu diverifikasi',
-  claude_reason:  'claude_reason  — Deep reasoning level tinggi untuk task kompleks.\n  INPUT: deskripsi task kompleks'
-};
-
-// Keyword → tool groups mapping
-var TOOL_TRIGGERS = [
-  { keys:['buat file','buatkan file','tulis file','simpan file','bikin file','create file','write file','buatin file','generate file','save file','download file','buat script','buat kode','buat program','buat html','buat css','buat js','buat python','buat lua'],
-    tools:['create_file','write_file','read_file','edit_file','append_file','list_files','delete_file','get_download'] },
-  { keys:['buka web','masuk web','cari di web','fetch','scrape','lihat url','analisis web','search web','cari web','buka url','ambil dari'],
-    tools:['fetch_url','search_web','url_meta','screenshot','whois','dns_lookup'] },
-  { keys:['analisis gambar','lihat gambar','apa di gambar','deskripsikan gambar','apa isi gambar','ocr','ekstrak teks gambar'],
-    tools:['analyze_image','ocr','image_resize'] },
-  { keys:['hitung','kalkulasi','berapa','rumus','matematika','kalkul'],
-    tools:['calculate'] },
-  { keys:['chart','grafik','visualisasi','plot','bar chart','pie chart','line chart'],
-    tools:['data_viz'] },
-  { keys:['sql','database','sqlite','query','tabel'],
-    tools:['sqlite'] },
-  { keys:['ingat','simpan','remember','memory','memori'],
-    tools:['remember','recall','list_memory','save_ai_memory'] },
-  { keys:['jalankan','execute','shell','bash','command','terminal','run','script','git','commit','push'],
-    tools:['shell_exec','process_list','git'] },
-  { keys:['base64','encode','decode','json','markdown','html','regex','convert','konversi'],
-    tools:['encode_b64','decode_b64','format_json','md_to_html','html_to_md','regex_test'] },
-  { keys:['cuaca','weather','suhu','forecast'],
-    tools:['weather'] },
-  { keys:['uuid','waktu','tanggal','jam','timer'],
-    tools:['uuid','get_time','timer_set'] },
-  { keys:['analisis','reasoning','verifikasi','cek fakta','deep reason'],
-    tools:['deep_reason','claude_reason'] },
-  { keys:['token','hitung kata','word count'],
-    tools:['word_count','token_counter'] }
-];
-
-// Inject tool descriptions yang relevan ke prompt
-function getToolInjection(msg, hasImages) {
-  var m = (msg||'').toLowerCase();
-  var needed = {};
-
-  // Gambar otomatis inject analyze_image
-  if (hasImages) { needed['analyze_image'] = true; }
-
-  TOOL_TRIGGERS.forEach(function(trigger) {
-    for (var i = 0; i < trigger.keys.length; i++) {
-      if (m.indexOf(trigger.keys[i]) >= 0) {
-        trigger.tools.forEach(function(t){ needed[t] = true; });
-        break;
-      }
-    }
-  });
-
-  var toolNames = Object.keys(needed);
-  if (!toolNames.length) return '';
-
-  var lines = toolNames.map(function(t){ return TOOL_REGISTRY[t] || t; });
-  return '\n\n[TOOLS TERSEDIA UNTUK TASK INI]\n' + lines.join('\n');
-}
-
-// Legacy compat stubs
-function detectTaskMode(msg){ return 'AUTO'; }
-function getModeHint(mode){ return ''; }
 
 
 // ---- AGENT MODE INDICATOR ----
@@ -2325,13 +2201,8 @@ async function runAgent(userMsg,files){
         else{try{userContent.push({type:'text',text:'[File: '+f.name+']\n'+atob(f.data)});}catch(e){userContent.push({type:'text',text:'[File: '+f.name+' — binary]'});}}
       });
     }
-    // ── Keyword mode detection & hint injection ──
-    // Dynamic tool injection — hanya inject deskripsi tool yang relevan
-    var _hasImgs=(_agentCurrentImages&&_agentCurrentImages.length>0);
-    var _toolInject=getToolInjection(userMsg,_hasImgs);
-    var _userMsgFinal=(userMsg||'')+_toolInject;
-    userContent.push({type:'text',text:_userMsgFinal});
-    messages.push({role:'user',content:(userContent.length===1)?_userMsgFinal:userContent});
+    userContent.push({type:'text',text:userMsg||''});
+    messages.push({role:'user',content:(userContent.length===1)?(userMsg||''):userContent});
 
     var MAX_TURNS=12;
     var finalAnswer='';
