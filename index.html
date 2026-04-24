@@ -358,6 +358,16 @@ strong{color:var(--txt);font-weight:600}
 .file-dl-chip{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--brd2);border-radius:10px;padding:7px 13px;font-size:11px;color:var(--txt2);margin:3px 4px 3px 0;font-family:var(--font);font-weight:500;cursor:pointer;text-decoration:none;transition:all .15s;}
 .file-dl-chip:hover,.file-dl-chip:active{background:var(--card2);border-color:rgba(224,125,79,0.3);color:var(--orange);}
 .files-panel{background:var(--sur);border:1px solid var(--brd2);border-radius:12px;padding:10px 12px;margin-top:10px}
+.file-preview-wrap{margin:8px 0 6px;border:1px solid var(--brd2);border-radius:10px;overflow:hidden}
+.file-preview-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--card);font-size:10px;font-family:var(--fontMono);color:var(--txt3);letter-spacing:.5px}
+.file-preview-bar span{color:var(--orange);font-weight:700}
+.file-preview-iframe{width:100%;height:320px;border:none;background:#fff}
+.file-preview-code{max-height:280px;overflow-y:auto;padding:10px 12px;font-size:11px;font-family:var(--fontMono);line-height:1.6;white-space:pre-wrap;word-break:break-all;background:var(--bg);color:var(--txt2)}
+.tool-steps-wrap{margin-bottom:6px}
+.tool-steps-hdr{font-size:9px;letter-spacing:1.5px;font-family:var(--fontMono);color:var(--txt3);margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:5px;text-transform:uppercase}
+.tool-steps-hdr:hover{color:var(--orange)}
+.tool-steps-list{display:none}
+.tool-steps-list.open{display:block}
 .files-panel-hdr{font-size:10px;letter-spacing:0.5px;font-family:var(--fontMono);font-weight:600;color:var(--txt3);margin-bottom:8px;text-transform:uppercase}
 
 /* ══════════════════════════════════════════════
@@ -1930,6 +1940,7 @@ function showAgentPopup(){
 
 // ---- AGENT TOOLS ----
 var _agentCurrentImages=[]; // Gambar yang dilampirkan user di sesi agent ini
+var _executedSteps=[]; // Track tool calls untuk ditampilkan di UI
 
 var AGENT_TOOLS={
   analyze_image:{desc:'Analisis gambar yang dilampirkan user. Input: pertanyaan/instruksi analisis (kosong = analisis umum)',run:async function(input){
@@ -2206,7 +2217,7 @@ async function runAgent(userMsg,files){
 
     var MAX_TURNS=12;
     var finalAnswer='';
-    pendingFileExports=[]; // Reset untuk setiap agent run baru
+    pendingFileExports=[]; _executedSteps=[];
     agentFiles={}; saveAgentFiles(); // Reset file storage + localStorage tiap run baru
     // Simpan gambar di sesi ini agar analyze_image tool bisa akses
     _agentCurrentImages=(files||[]).filter(function(f){return f.isImg;});
@@ -2314,6 +2325,14 @@ async function runAgent(userMsg,files){
             observation='✅ File siap. Tombol download otomatis muncul di FINAL ANSWER.';
           }
           agLog('Obs['+ai+']: '+observation.slice(0,80)+(observation.length>80?'...':''));
+          // Track step for UI display
+          var thoughtMatch=llmOut.match(/THOUGHT:\s*([^\n]+)/i);
+          _executedSteps.push({
+            tool:toolName,
+            input:toolInput,
+            obs:observation,
+            thought:thoughtMatch?thoughtMatch[1].trim():''
+          });
           lastObservations.push('Tool '+toolName+': '+observation);
         }
       }
@@ -2395,30 +2414,74 @@ async function runAgent(userMsg,files){
     var agParsed=parseAiMemoryTags(finalAnswer);
     finalAnswer=agParsed.cleaned;
 
-   // Auto-inject FILE_EXPORT markers — model tidak perlu tulis placeholder
+    // ── TOOL STEPS PANEL — tampilkan setelah header, sebelum final answer ──
+    if(_executedSteps.length>0){
+      var stepsWrap=document.createElement('div');stepsWrap.className='tool-steps-wrap';
+      var stepsHdr=document.createElement('div');stepsHdr.className='tool-steps-hdr';
+      stepsHdr.innerHTML='▶ '+_executedSteps.length+' tool'+ (_executedSteps.length>1?'s':'')+' executed';
+      var stepsList=document.createElement('div');stepsList.className='tool-steps-list';
+      stepsHdr.onclick=function(){stepsList.classList.toggle('open');stepsHdr.innerHTML=(stepsList.classList.contains('open')?'▼ ':'▶ ')+_executedSteps.length+' tool'+(_executedSteps.length>1?'s':'')+' executed';};
+      _executedSteps.forEach(function(st,i){
+        var step=document.createElement('div');step.className='agent-step';
+        var hdr=document.createElement('div');hdr.className='agent-step-hdr';
+        hdr.innerHTML='<span class="step-num">'+(i+1)+'</span><span class="step-tool">'+escH(st.tool)+'</span><span class="step-label">'+(st.thought?escH(st.thought.slice(0,50)):'')+'</span><span class="step-arrow">▶</span>';
+        var body=document.createElement('div');body.className='step-body';
+        var inputShort=st.input.length>200?st.input.slice(0,200)+'...':st.input;
+        var obsShort=st.obs.length>400?st.obs.slice(0,400)+'...':st.obs;
+        // Don't show raw base64 in obs
+        var obsClean=obsShort.replace(/[A-Za-z0-9+\/]{100,}/g,'[base64 data]');
+        body.innerHTML='<div class="step-action-box">INPUT: '+escH(inputShort)+'</div>'+(obsClean?'<div class="step-obs">'+escH(obsClean)+'</div>':'');
+        hdr.onclick=function(){body.classList.toggle('show');hdr.querySelector('.step-arrow').classList.toggle('open');};
+        step.appendChild(hdr);step.appendChild(body);
+        stepsList.appendChild(step);
+      });
+      stepsWrap.appendChild(stepsHdr);stepsWrap.appendChild(stepsList);
+      fa.insertBefore(stepsWrap,agFinal);
+    }
+
+    // Auto-inject FILE_EXPORT markers
     if(pendingFileExports.length>0&&finalAnswer.indexOf('[FILE_EXPORT:')<0){
       finalAnswer=finalAnswer.replace(/\[DOWNLOAD_[^\]]*\]/gi,'').trim();
       finalAnswer=finalAnswer+'\n\n'+pendingFileExports.join('\n');
     }
 
-    // ── Tampilkan download chip SEGERA, tidak perlu tunggu typewriter ──────
+    // ── FILE PREVIEW + DOWNLOAD PANEL ──
     if(pendingFileExports.length>0){
       var dlPanel=document.createElement('div');
       dlPanel.style.cssText='margin-bottom:10px;';
-      dlPanel.innerHTML='<div style="font-size:9px;letter-spacing:2px;font-family:var(--fontMono);color:var(--yellow);margin-bottom:6px;">📦 FILE SIAP</div>';
+      dlPanel.innerHTML='<div style="font-size:9px;letter-spacing:2px;font-family:var(--fontMono);color:var(--yellow);margin-bottom:8px;">📦 FILE SIAP</div>';
       pendingFileExports.forEach(function(marker){
         var m=marker.match(/\[FILE_EXPORT:([^:]+):([^:]*):([^\]]*)\]/);
         if(!m)return;
         var fname=m[1],b64=m[2],mime=m[3];
-        var chip=document.createElement('a');
-        chip.className='file-dl-chip';
-        chip.href='#';
-        chip.innerHTML='⬇️ '+escH(fname);
+        var ext=fname.split('.').pop().toLowerCase();
+        var previewWrap=document.createElement('div');previewWrap.className='file-preview-wrap';
+        // Preview bar
+        var bar=document.createElement('div');bar.className='file-preview-bar';
+        bar.innerHTML='<span>'+escH(fname)+'</span><span style="color:var(--txt3)">'+ext.toUpperCase()+'</span>';
+        previewWrap.appendChild(bar);
+        // Preview content
+        var decoded='';
+        try{decoded=decodeURIComponent(escape(atob(b64)));}catch(e){try{decoded=atob(b64);}catch(e2){decoded='';}}
+        if(ext==='html'){
+          var iframe=document.createElement('iframe');
+          iframe.className='file-preview-iframe';
+          iframe.sandbox='allow-scripts allow-same-origin';
+          iframe.srcdoc=decoded;
+          previewWrap.appendChild(iframe);
+        } else if(['js','py','css','json','lua','txt','md','yaml','xml','sh','sql','ts','jsx'].indexOf(ext)>=0){
+          var pre=document.createElement('div');pre.className='file-preview-code';
+          pre.textContent=decoded.slice(0,3000)+(decoded.length>3000?'\n... (truncated)':'');
+          previewWrap.appendChild(pre);
+        }
+        dlPanel.appendChild(previewWrap);
+        // Download button
+        var chip=document.createElement('a');chip.className='file-dl-chip';chip.href='#';
+        chip.innerHTML='⬇️ Download '+escH(fname);
         chip.onclick=function(e){
           e.preventDefault();
           try{
-            var bin=atob(b64);
-            var arr=new Uint8Array(bin.length);
+            var bin=atob(b64);var arr=new Uint8Array(bin.length);
             for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
             var blob=new Blob([arr],{type:mime||'application/octet-stream'});
             var a2=document.createElement('a');a2.href=URL.createObjectURL(blob);a2.download=fname;a2.click();
@@ -2426,7 +2489,7 @@ async function runAgent(userMsg,files){
         };
         dlPanel.appendChild(chip);
       });
-      fa.insertBefore(dlPanel, agFinal);
+      fa.insertBefore(dlPanel,agFinal);
       chat.scrollTop=chat.scrollHeight;
     }
 
