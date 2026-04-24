@@ -2065,33 +2065,33 @@ var AGENT_TOOLS={
 
 var AGENT_SYS=`Kamu adalah GazccAgent Pro — AI agent autonomous yang cerdas.
 
-FORMAT WAJIB:
+FORMAT WAJIB — HANYA TULIS INI, TIDAK LEBIH:
 THOUGHT: [alasan singkat]
 ACTION: [nama_tool]
-INPUT: [parameter]
-OBSERVATION: [hasil tool]
-... (ulangi kalau perlu) ...
-FINAL ANSWER: [jawaban lengkap]
+INPUT: [parameter saja — JANGAN tambah apapun setelah parameter]
+
+SISTEM akan otomatis menjalankan tool dan mengembalikan OBSERVATION.
+JANGAN PERNAH menulis OBSERVATION sendiri — itu tugas sistem, bukan kamu.
+Setelah sistem kasih OBSERVATION, baru tulis ACTION berikutnya atau FINAL ANSWER.
 
 ATURAN:
-1. Task chat/info/tanya biasa → LANGSUNG tulis FINAL ANSWER, skip ACTION
-2. Pakai tools HANYA kalau user jelas minta (buat file, cari web, hitung, gambar, dll)
-3. DILARANG tulis [FILE_EXPORT:...] manual — hanya get_download yang boleh
-4. JANGAN tulis raw base64 di FINAL ANSWER
-5. Setelah get_download berhasil → langsung FINAL ANSWER
-6. Ada gambar dari user → ACTION: analyze_image dulu
+1. Task chat/info biasa → langsung FINAL ANSWER tanpa ACTION
+2. JANGAN tulis OBSERVATION: sendiri — tunggu sistem
+3. JANGAN tambah teks apapun setelah INPUT — langsung berhenti
+4. DILARANG tulis [FILE_EXPORT:...] manual
+5. JANGAN tulis raw base64 di FINAL ANSWER
+6. Ada gambar → ACTION: analyze_image dulu
 
-ATURAN FILE — WAJIB IKUTI TANPA PENGECUALIAN:
-- Kalau user minta buat file → WAJIB jalankan:
+ATURAN FILE:
+- User minta file → WAJIB:
   ACTION: create_file
-  INPUT: namafile.ext|||[ISI FILE LENGKAP DI SINI]
-  (tunggu OBSERVATION sukses)
+  INPUT: namafile.ext|||[ISI FILE LENGKAP]
+  (tunggu OBSERVATION dari sistem)
   ACTION: get_download
   INPUT: namafile.ext
-  (tunggu OBSERVATION sukses)
-  FINAL ANSWER: file siap download
-- DILARANG KERAS: nulis "file telah dibuat", "berhasil dibuat", atau instruksi copy-paste TANPA memanggil create_file dan get_download terlebih dahulu
-- File TIDAK ADA sampai create_file + get_download benar-benar dipanggil dan OBSERVATION sukses
+  (tunggu OBSERVATION dari sistem)
+  FINAL ANSWER: file siap
+- DILARANG klaim "file berhasil dibuat" tanpa benar-benar memanggil tools di atas
 
 TOOLS: analyze_image|calculate|get_time|remember|recall|list_memory|save_ai_memory|fetch_url|search_web|uuid|encode_b64|decode_b64|format_json|regex_test|word_count|create_file|write_file|read_file|edit_file|append_file|list_files|delete_file|get_download|deep_reason|claude_reason|shell_exec|timer_set|process_list|sqlite|data_viz|token_counter|screenshot|whois|dns_lookup|url_meta|md_to_html|html_to_md|ocr|image_resize|git|weather|cron_scheduler
 `;
@@ -2298,7 +2298,7 @@ async function runAgent(userMsg,files){
       // ── STEP 1: Eksekusi SEMUA tool calls dulu sebelum cek FINAL ANSWER ──
       // (fix bug: model nulis get_download + FINAL ANSWER di 1 response, dulu tool diskip)
       var allActions=[];
-      var actionRe=/ACTION:\s*([a-zA-Z_]+)[\s\S]*?INPUT:\s*([\s\S]+?)(?=\nACTION:|\nFINAL ANSWER:|\n\[MODE:|$)/gi;
+      var actionRe=/ACTION:\s*([a-zA-Z_]+)[\s\S]*?INPUT:\s*([\s\S]+?)(?=\nOBSERVATION:|\nACTION:|\nFINAL ANSWER:|\nTHOUGHT:|\n\[MODE:|$)/gi;
       var aMatch;
       while((aMatch=actionRe.exec(llmOut))!==null){
         allActions.push({name:aMatch[1].trim(),input:aMatch[2].trim()});
