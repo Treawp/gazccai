@@ -694,8 +694,8 @@ strong{color:var(--txt);font-weight:600}
     <!-- Hidden select still used by JS -->
     <select id="msel" style="display:none">
       <optgroup label="── Fast & Cheap ──">
-        <option value="deepseek/deepseek-v4-flash" selected>DeepSeek V4 Flash ⚡</option>
-        <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash ⚡</option>
+        <option value="qwen/qwen3.6-plus" selected>Qwen3.6 Plus ⚡</option>
+        <option value="qwen/qwen3.6-plus">Qwen3.6 Plus ⚡</option>
         <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (Free) 💻</option>
         <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free) 🦙</option>
         <option value="mistralai/mistral-nemo:free">Mistral Nemo (Free)</option>
@@ -770,8 +770,8 @@ strong{color:var(--txt);font-weight:600}
 <script>
 // Model Sheet Logic
 var modelList = [
-  {value:'deepseek/deepseek-v4-flash',name:'DeepSeek V4 Flash',desc:'Fast · 1M ctx · MoE ⚡',vision:false},
-  {value:'deepseek/deepseek-v4-flash',name:'DeepSeek V4 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
+  {value:'qwen/qwen3.6-plus',name:'Qwen3.6 Plus',desc:'Fast · Tool-Use ⚡',vision:false},
+  {value:'qwen/qwen3.6-plus',name:'Qwen3.6 Plus',desc:'Fast · Tool-Use ⚡',vision:false},
   {value:'deepseek/deepseek-chat-v3-0324:free',name:'DeepSeek V3',desc:'Free · Coding 💻',vision:false},
   {value:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B',desc:'Free · Open Source 🦙',vision:false},
   {value:'mistralai/mistral-nemo:free',name:'Mistral Nemo',desc:'Free · Ringan',vision:false},
@@ -1747,7 +1747,7 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    var selectedModel=model||document.getElementById('msel').value||'deepseek/deepseek-v4-flash';
+    var selectedModel=model||document.getElementById('msel').value||'qwen/qwen3.6-plus';
     // Tampilkan indikator proses AI
     showAgentMode('generating', 15);
     var contBadge=null;
@@ -1964,7 +1964,7 @@ var AGENT_TOOLS={
       var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
         method:'POST',
         headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:document.getElementById('msel').value||'deepseek/deepseek-v4-flash',messages:[{role:'user',content:imgContent}],max_tokens:2000})
+        body:JSON.stringify({model:document.getElementById('msel').value||'qwen/qwen3.6-plus',messages:[{role:'user',content:imgContent}],max_tokens:2000})
       });
       var vData=await vRes.json();
       if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
@@ -2006,7 +2006,7 @@ var AGENT_TOOLS={
     xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
     xhr.setRequestHeader('X-Title','GazccDeepReason');
     var body=JSON.stringify({
-      model: agentModel||'deepseek/deepseek-v4-flash',
+      model: agentModel||'qwen/qwen3.6-plus',
       messages:[
         {role:'system',content:'Kamu adalah analytical engine yang SANGAT AKURAT dan grounded. Aturan MUTLAK:\n1. HANYA nyatakan hal yang kamu YAKIN benar — kalau ragu, katakan "Aku tidak yakin tentang X"\n2. JANGAN mengarang data, angka, atau fakta\n3. Gunakan reasoning step-by-step yang eksplisit\n4. Pisahkan FAKTA vs ASUMSI vs OPINI dengan jelas\n5. Output format: [ANALYSIS] → [FACTS] → [REASONING] → [CONCLUSION]\n6. Jika pertanyaan ambigu, nyatakan ambiguitas dan beri jawaban untuk tiap interpretasi'},
         {role:'user',content:q}
@@ -2037,7 +2037,7 @@ var AGENT_TOOLS={
     xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
     xhr.setRequestHeader('X-Title','GazccClaudeReason');
     var body=JSON.stringify({
-      model:'deepseek/deepseek-v4-flash',
+      model:'qwen/qwen3.6-plus',
       messages:[
         {role:'system',content:'You are Claude, an AI assistant by Anthropic known for exceptional reasoning, honesty, and accuracy. Always think step by step. Never hallucinate facts. If uncertain, explicitly state your uncertainty. Provide thorough, nuanced analysis.'},
         {role:'user',content:q}
@@ -2214,7 +2214,7 @@ async function runAgent(userMsg,files){
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
-    var agentModel=document.getElementById('msel').value||'deepseek/deepseek-v4-flash';
+    var agentModel=document.getElementById('msel').value||'qwen/qwen3.6-plus';
 
     // ── Bangun messages array multi-turn (bukan digabung jadi 1 string) ──
     // Ini biar prompt user tidak kepotong dan context window lebih efisien
@@ -2612,7 +2612,7 @@ async function send(){
     var imageFiles=files.filter(function(f){return f.isImg;});
     var nonImageFiles=files.filter(function(f){return !f.isImg;});
     var hasImages=imageFiles.length>0;
-    var model=document.getElementById('msel').value||'deepseek/deepseek-v4-flash';
+    var model=document.getElementById('msel').value||'qwen/qwen3.6-plus';
     var content=[];
 
     if(hasImages){
