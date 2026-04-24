@@ -693,8 +693,14 @@ strong{color:var(--txt);font-weight:600}
     </div>
     <!-- Hidden select still used by JS -->
     <select id="msel" style="display:none">
+      <optgroup label="── Fast & Cheap ──">
+        <option value="deepseek/deepseek-v4-flash" selected>DeepSeek V4 Flash ⚡</option>
+        <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash ⚡</option>
+        <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (Free) 💻</option>
+        <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free) 🦙</option>
+        <option value="mistralai/mistral-nemo:free">Mistral Nemo (Free)</option>
+      </optgroup>
       <optgroup label="── Vision Support 👁 ──">
-        <option value="qwen/qwen3.5-flash-02-23" selected>Qwen3.5 Flash ⚡</option>
         <option value="moonshotai/kimi-k2.5" data-vision="1">Kimi K2.5 👁</option>
         <option value="google/gemini-2.0-flash-001" data-vision="1">Gemini 2.0 Flash 👁</option>
         <option value="google/gemini-flash-1.5" data-vision="1">Gemini 1.5 Flash 👁⚡</option>
@@ -702,13 +708,6 @@ strong{color:var(--txt);font-weight:600}
         <option value="openai/gpt-4o" data-vision="1">GPT-4o 👁</option>
         <option value="anthropic/claude-sonnet-4-5" data-vision="1">Claude Sonnet 4.5 👁</option>
         <option value="anthropic/claude-3-5-haiku" data-vision="1">Claude Haiku 3.5 👁⚡</option>
-      </optgroup>
-      <optgroup label="── Text Only ──">
-        <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (Free) 💻</option>
-        <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free) 🦙</option>
-        <option value="nvidia/llama-3.1-nemotron-ultra-253b-v1:free">Nemotron 253B (Free)</option>
-        <option value="mistralai/mistral-nemo:free">Mistral Nemo (Free)</option>
-        <option value="qwen/qwen3.5-flash-02-23">Qwen3.5 Flash ⚡</option>
       </optgroup>
     </select>
     <button class="hbtn agent-toggle" id="agentToggle" onclick="toggleAgent()" title="GazccAgent Mode" style="font-size:15px">⚡</button>
@@ -771,9 +770,11 @@ strong{color:var(--txt);font-weight:600}
 <script>
 // Model Sheet Logic
 var modelList = [
-  {value:'qwen/qwen3.5-flash-02-23',name:'Qwen3.5 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
-  {value:'qwen/qwen3.5-flash-02-23',name:'Qwen3.5 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
-  {value:'qwen/qwen3.5-flash-02-23',name:'Qwen3.5 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
+  {value:'deepseek/deepseek-v4-flash',name:'DeepSeek V4 Flash',desc:'Fast · 1M ctx · MoE ⚡',vision:false},
+  {value:'deepseek/deepseek-v4-flash',name:'DeepSeek V4 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
+  {value:'deepseek/deepseek-chat-v3-0324:free',name:'DeepSeek V3',desc:'Free · Coding 💻',vision:false},
+  {value:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B',desc:'Free · Open Source 🦙',vision:false},
+  {value:'mistralai/mistral-nemo:free',name:'Mistral Nemo',desc:'Free · Ringan',vision:false},
   {value:'moonshotai/kimi-k2.5',name:'Kimi K2.5',desc:'Vision Support 👁',vision:true},
   {value:'google/gemini-2.0-flash-001',name:'Gemini 2.0 Flash',desc:'Vision Support 👁',vision:true},
   {value:'google/gemini-flash-1.5',name:'Gemini 1.5 Flash',desc:'Vision · Cepat 👁',vision:true},
@@ -781,11 +782,6 @@ var modelList = [
   {value:'openai/gpt-4o',name:'GPT-4o',desc:'Vision Support 👁',vision:true},
   {value:'anthropic/claude-sonnet-4-5',name:'Claude Sonnet 4.5',desc:'Vision Support 👁',vision:true},
   {value:'anthropic/claude-3-5-haiku',name:'Claude Haiku 3.5',desc:'Vision · Cepat 👁',vision:true},
-  {value:'deepseek/deepseek-chat-v3-0324:free',name:'DeepSeek V3',desc:'Free · Coding',vision:false},
-  {value:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B',desc:'Free · Open Source',vision:false},
-  {value:'nvidia/llama-3.1-nemotron-ultra-253b-v1:free',name:'Nemotron 253B',desc:'Free · Powerful',vision:false},
-  {value:'mistralai/mistral-nemo:free',name:'Mistral Nemo',desc:'Free · European',vision:false},
-  {value:'qwen/qwen3.5-flash-02-23',name:'Qwen3.5 Flash',desc:'Fast · Tool-Use ⚡',vision:false},
 ];
 
 function openModelSheet(){
@@ -1378,17 +1374,34 @@ function rmW(){var w=document.getElementById('wlc');if(w)w.remove();}
 
 // ---- FILES ----
 function handleFiles(files){
-  Array.from(files).forEach(function(file){
+  var arr=Array.from(files);
+  var total=arr.length;
+  if(total===0)return;
+  var done=0;
+  arr.forEach(function(file){
+    // Detect MIME from extension if browser doesn't provide it (common on Android gallery)
+    var mime=file.type||'';
+    if(!mime||mime==='application/octet-stream'){
+      var ext=(file.name||'').split('.').pop().toLowerCase();
+      var extMap={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',heic:'image/heic',heif:'image/heif',bmp:'image/bmp',pdf:'application/pdf',txt:'text/plain',js:'application/javascript',py:'text/x-python',html:'text/html',css:'text/css',json:'application/json',md:'text/markdown',csv:'text/csv',lua:'text/x-lua',ts:'text/typescript',jsx:'text/jsx',xml:'application/xml',yaml:'text/yaml',yml:'text/yaml'};
+      mime=extMap[ext]||'application/octet-stream';
+    }
+    var isImg=mime.startsWith('image/');
     var reader=new FileReader();
+    reader.onerror=function(){
+      done++;
+      if(done===total){document.getElementById('fileInput').value='';renderAttachBar();}
+    };
     reader.onload=function(e){
-      var b64=e.target.result.split(',')[1];
-      var mime=file.type||'application/octet-stream';
-      pendingFiles.push({name:file.name,mime:mime,data:b64,isImg:mime.startsWith('image/')});
+      var result=e.target.result||'';
+      var b64=result.indexOf(',')>=0?result.split(',')[1]:result;
+      if(b64){pendingFiles.push({name:file.name,mime:mime,data:b64,isImg:isImg});}
+      done++;
+      if(done===total){document.getElementById('fileInput').value='';}
       renderAttachBar();
     };
     reader.readAsDataURL(file);
   });
-  document.getElementById('fileInput').value='';
 }
 
 function renderAttachBar(){
@@ -1734,7 +1747,7 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    var selectedModel=model||document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23';
+    var selectedModel=model||document.getElementById('msel').value||'deepseek/deepseek-v4-flash';
     // Tampilkan indikator proses AI
     showAgentMode('generating', 15);
     var contBadge=null;
@@ -1951,7 +1964,7 @@ var AGENT_TOOLS={
       var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
         method:'POST',
         headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23',messages:[{role:'user',content:imgContent}],max_tokens:2000})
+        body:JSON.stringify({model:document.getElementById('msel').value||'deepseek/deepseek-v4-flash',messages:[{role:'user',content:imgContent}],max_tokens:2000})
       });
       var vData=await vRes.json();
       if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
@@ -1993,7 +2006,7 @@ var AGENT_TOOLS={
     xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
     xhr.setRequestHeader('X-Title','GazccDeepReason');
     var body=JSON.stringify({
-      model: agentModel||'qwen/qwen3.5-flash-02-23',
+      model: agentModel||'deepseek/deepseek-v4-flash',
       messages:[
         {role:'system',content:'Kamu adalah analytical engine yang SANGAT AKURAT dan grounded. Aturan MUTLAK:\n1. HANYA nyatakan hal yang kamu YAKIN benar — kalau ragu, katakan "Aku tidak yakin tentang X"\n2. JANGAN mengarang data, angka, atau fakta\n3. Gunakan reasoning step-by-step yang eksplisit\n4. Pisahkan FAKTA vs ASUMSI vs OPINI dengan jelas\n5. Output format: [ANALYSIS] → [FACTS] → [REASONING] → [CONCLUSION]\n6. Jika pertanyaan ambigu, nyatakan ambiguitas dan beri jawaban untuk tiap interpretasi'},
         {role:'user',content:q}
@@ -2024,7 +2037,7 @@ var AGENT_TOOLS={
     xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
     xhr.setRequestHeader('X-Title','GazccClaudeReason');
     var body=JSON.stringify({
-      model:'qwen/qwen3.5-flash-02-23',
+      model:'deepseek/deepseek-v4-flash',
       messages:[
         {role:'system',content:'You are Claude, an AI assistant by Anthropic known for exceptional reasoning, honesty, and accuracy. Always think step by step. Never hallucinate facts. If uncertain, explicitly state your uncertainty. Provide thorough, nuanced analysis.'},
         {role:'user',content:q}
@@ -2061,12 +2074,24 @@ OBSERVATION: [hasil tool]
 FINAL ANSWER: [jawaban lengkap]
 
 ATURAN:
-1. Task chat/info/tanya biasa → LANGSUNG tulis FINAL ANSWER, jangan pakai tools
+1. Task chat/info/tanya biasa → LANGSUNG tulis FINAL ANSWER, skip ACTION
 2. Pakai tools HANYA kalau user jelas minta (buat file, cari web, hitung, gambar, dll)
 3. DILARANG tulis [FILE_EXPORT:...] manual — hanya get_download yang boleh
 4. JANGAN tulis raw base64 di FINAL ANSWER
 5. Setelah get_download berhasil → langsung FINAL ANSWER
 6. Ada gambar dari user → ACTION: analyze_image dulu
+
+ATURAN FILE — WAJIB IKUTI TANPA PENGECUALIAN:
+- Kalau user minta buat file → WAJIB jalankan:
+  ACTION: create_file
+  INPUT: namafile.ext|||[ISI FILE LENGKAP DI SINI]
+  (tunggu OBSERVATION sukses)
+  ACTION: get_download
+  INPUT: namafile.ext
+  (tunggu OBSERVATION sukses)
+  FINAL ANSWER: file siap download
+- DILARANG KERAS: nulis "file telah dibuat", "berhasil dibuat", atau instruksi copy-paste TANPA memanggil create_file dan get_download terlebih dahulu
+- File TIDAK ADA sampai create_file + get_download benar-benar dipanggil dan OBSERVATION sukses
 
 TOOLS: analyze_image|calculate|get_time|remember|recall|list_memory|save_ai_memory|fetch_url|search_web|uuid|encode_b64|decode_b64|format_json|regex_test|word_count|create_file|write_file|read_file|edit_file|append_file|list_files|delete_file|get_download|deep_reason|claude_reason|shell_exec|timer_set|process_list|sqlite|data_viz|token_counter|screenshot|whois|dns_lookup|url_meta|md_to_html|html_to_md|ocr|image_resize|git|weather|cron_scheduler
 `;
@@ -2189,7 +2214,7 @@ async function runAgent(userMsg,files){
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
-    var agentModel=document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23';
+    var agentModel=document.getElementById('msel').value||'deepseek/deepseek-v4-flash';
 
     // ── Bangun messages array multi-turn (bukan digabung jadi 1 string) ──
     // Ini biar prompt user tidak kepotong dan context window lebih efisien
@@ -2343,6 +2368,16 @@ async function runAgent(userMsg,files){
         var tentativeFinal=faMatch[1].trim();
         // Guard: reject raw base64 dump in final answer
         if(/[A-Za-z0-9+\/]{500,}/.test(tentativeFinal.replace(/[FILE_EXPORT:[^]]+]/g,''))){agLog('🚫 Raw base64 di FINAL ANSWER — paksa ulang');messages.push({role:'assistant',content:llmOut});messages.push({role:'user',content:'❌ DITOLAK. JANGAN tulis raw base64 di FINAL ANSWER. Gunakan create_file + get_download untuk kirim file.'});showAgentMode('critic',40);continue;}
+        // Guard: agent ngaku buat file tapi tools belum dipanggil
+        var claimsMadeFile=/berhasil dibuat|file.*dibuat|file.*selesai|telah dibuat|sudah dibuat|file.*siap|successfully created|file.*created/i.test(tentativeFinal);
+        var hasFileInStorage=Object.keys(agentFiles).length>0;
+        if(claimsMadeFile && pendingFileExports.length===0 && !hasFileInStorage){
+          agLog('🚫 Agent ngaku buat file tanpa pakai tools — paksa ulang');
+          messages.push({role:'assistant',content:llmOut});
+          messages.push({role:'user',content:'❌ DITOLAK. Kamu bilang file sudah dibuat tapi TIDAK ADA tool create_file yang dipanggil.\nWAJIB jalankan sekarang:\nACTION: create_file\nINPUT: namafile.ext|||[ISI FILE LENGKAP]\nACTION: get_download\nINPUT: namafile.ext\nBARU tulis FINAL ANSWER.'});
+          showAgentMode('critic',50);
+          continue;
+        }
         if(tentativeFinal.indexOf('[FILE_EXPORT:')>=0 && pendingFileExports.length===0){
           agLog('🚫 FILE_EXPORT manual tanpa tools — paksa ulang');
           messages.push({role:'assistant',content:llmOut});
@@ -2577,7 +2612,7 @@ async function send(){
     var imageFiles=files.filter(function(f){return f.isImg;});
     var nonImageFiles=files.filter(function(f){return !f.isImg;});
     var hasImages=imageFiles.length>0;
-    var model=document.getElementById('msel').value||'qwen/qwen3.5-flash-02-23';
+    var model=document.getElementById('msel').value||'deepseek/deepseek-v4-flash';
     var content=[];
 
     if(hasImages){
