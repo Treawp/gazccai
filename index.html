@@ -659,7 +659,7 @@ strong{color:var(--txt);font-weight:600}
       </svg>
     </div>
     <h2>GazccAI Setup</h2>
-    <p>Pakai OpenRouter — masukkan API key kamu dari openrouter.ai/keys</p>
+    <p>Pakai Groq — masukkan API key kamu dari console.groq.com/keys</p>
     <div>
       <div class="field-label">OpenRouter API Key</div>
       <input type="password" id="apiKey" placeholder="sk-or-...">
@@ -693,21 +693,15 @@ strong{color:var(--txt);font-weight:600}
     </div>
     <!-- Hidden select still used by JS -->
     <select id="msel" style="display:none">
-      <optgroup label="── Fast & Cheap ──">
-        <option value="qwen/qwen3.6-plus" selected>Qwen3.6 Plus ⚡</option>
-        <option value="qwen/qwen3.6-plus">Qwen3.6 Plus ⚡</option>
-        <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 (Free) 💻</option>
-        <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free) 🦙</option>
-        <option value="mistralai/mistral-nemo:free">Mistral Nemo (Free)</option>
+      <optgroup label="── Groq Models ──">
+        <option value="qwen/qwen3-32b" selected>Qwen3-32B 🧠</option>
+        <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick ⚡</option>
+        <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+        <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant ⚡</option>
+        <option value="gemma2-9b-it">Gemma 2 9B</option>
       </optgroup>
       <optgroup label="── Vision Support 👁 ──">
-        <option value="moonshotai/kimi-k2.5" data-vision="1">Kimi K2.5 👁</option>
-        <option value="google/gemini-2.0-flash-001" data-vision="1">Gemini 2.0 Flash 👁</option>
-        <option value="google/gemini-flash-1.5" data-vision="1">Gemini 1.5 Flash 👁⚡</option>
-        <option value="openai/gpt-4o-mini" data-vision="1">GPT-4o Mini 👁⚡</option>
-        <option value="openai/gpt-4o" data-vision="1">GPT-4o 👁</option>
-        <option value="anthropic/claude-sonnet-4-5" data-vision="1">Claude Sonnet 4.5 👁</option>
-        <option value="anthropic/claude-3-5-haiku" data-vision="1">Claude Haiku 3.5 👁⚡</option>
+        <option value="meta-llama/llama-4-scout-17b-16e-instruct" data-vision="1">Llama 4 Scout 👁⚡</option>
       </optgroup>
     </select>
     <button class="hbtn agent-toggle" id="agentToggle" onclick="toggleAgent()" title="GazccAgent Mode" style="font-size:15px">⚡</button>
@@ -770,18 +764,12 @@ strong{color:var(--txt);font-weight:600}
 <script>
 // Model Sheet Logic
 var modelList = [
-  {value:'qwen/qwen3.6-plus',name:'Qwen3.6 Plus',desc:'Fast · Tool-Use ⚡',vision:false},
-  {value:'qwen/qwen3.6-plus',name:'Qwen3.6 Plus',desc:'Fast · Tool-Use ⚡',vision:false},
-  {value:'deepseek/deepseek-chat-v3-0324:free',name:'DeepSeek V3',desc:'Free · Coding 💻',vision:false},
-  {value:'meta-llama/llama-3.3-70b-instruct:free',name:'Llama 3.3 70B',desc:'Free · Open Source 🦙',vision:false},
-  {value:'mistralai/mistral-nemo:free',name:'Mistral Nemo',desc:'Free · Ringan',vision:false},
-  {value:'moonshotai/kimi-k2.5',name:'Kimi K2.5',desc:'Vision Support 👁',vision:true},
-  {value:'google/gemini-2.0-flash-001',name:'Gemini 2.0 Flash',desc:'Vision Support 👁',vision:true},
-  {value:'google/gemini-flash-1.5',name:'Gemini 1.5 Flash',desc:'Vision · Cepat 👁',vision:true},
-  {value:'openai/gpt-4o-mini',name:'GPT-4o Mini',desc:'Vision · Cepat 👁',vision:true},
-  {value:'openai/gpt-4o',name:'GPT-4o',desc:'Vision Support 👁',vision:true},
-  {value:'anthropic/claude-sonnet-4-5',name:'Claude Sonnet 4.5',desc:'Vision Support 👁',vision:true},
-  {value:'anthropic/claude-3-5-haiku',name:'Claude Haiku 3.5',desc:'Vision · Cepat 👁',vision:true},
+  {value:'qwen/qwen3-32b',name:'Qwen3-32B',desc:'Smart · Tool-Use 🧠',vision:false},
+  {value:'meta-llama/llama-4-scout-17b-16e-instruct',name:'Llama 4 Scout',desc:'Vision Support 👁⚡',vision:true},
+  {value:'meta-llama/llama-4-maverick-17b-128e-instruct',name:'Llama 4 Maverick',desc:'Fast · Powerful ⚡',vision:false},
+  {value:'llama-3.3-70b-versatile',name:'Llama 3.3 70B',desc:'Versatile · Open Source 🦙',vision:false},
+  {value:'llama-3.1-8b-instant',name:'Llama 3.1 8B',desc:'Ringan · Cepat ⚡',vision:false},
+  {value:'gemma2-9b-it',name:'Gemma 2 9B',desc:'Google · Ringan',vision:false},
 ];
 
 function openModelSheet(){
@@ -1175,7 +1163,7 @@ function _buildChatUI(){
     '<div class="welcome" id="wlc">'+
     '<div class="welcome-icon">🤖</div>'+
     '<h2>'+BOT+'</h2>'+
-    '<div class="tag">POWERED BY OPENROUTER</div>'+
+    '<div class="tag">POWERED BY GROQ</div>'+
     '<p>Pilih model — ketik, kirim gambar, atau upload file</p>'+
     '<div class="caps"><span class="cap">🖼 Gambar + Agent</span><span class="cap">📄 PDF/File</span><span class="cap">🧠 AI Memory</span><span class="cap">💡 Auto Context</span><span class="cap">🔴 Streaming</span><span class="cap">💬 Multi-Chat</span></div></div>';
   var ab=document.getElementById('attachBar');ab.innerHTML='';ab.style.display='none';
@@ -1747,7 +1735,7 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    var selectedModel=model||document.getElementById('msel').value||'qwen/qwen3.6-plus';
+    var selectedModel=model||document.getElementById('msel').value||'qwen/qwen3-32b';
     // Tampilkan indikator proses AI
     showAgentMode('generating', 15);
     var contBadge=null;
@@ -1767,7 +1755,7 @@ async function sendStream(messages,model){
       if(emsg.indexOf('401')>=0||emsg.toLowerCase().indexOf('invalid api key')>=0)
         ehtml+='<br>🔑 API Key tidak valid — cek di ⚙️ Settings.';
       else if(emsg.indexOf('402')>=0||emsg.toLowerCase().indexOf('credit')>=0)
-        ehtml+='<br>💳 Kredit habis — top up di openrouter.ai/credits.';
+        ehtml+='<br>💳 Rate limit Groq — tunggu sebentar lalu coba lagi.';
       else if(emsg.indexOf('429')>=0)
         ehtml+='<br>⏳ Rate limit — tunggu sebentar lalu coba lagi.';
       else if(emsg.toLowerCase().indexOf('image')>=0||emsg.indexOf('vision')>=0||emsg.indexOf('multimodal')>=0)
@@ -1961,10 +1949,10 @@ var AGENT_TOOLS={
     var imgContent=_agentCurrentImages.map(function(f){return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};});
     imgContent.push({type:'text',text:input&&input.trim()?input.trim():'Analisis gambar ini secara lengkap dan detail. Jelaskan semua yang kamu lihat.'});
     try{
-      var vRes=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      var vRes=await fetch('https://api.groq.com/openai/v1/chat/completions',{
         method:'POST',
-        headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-        body:JSON.stringify({model:document.getElementById('msel').value||'qwen/qwen3.6-plus',messages:[{role:'user',content:imgContent}],max_tokens:2000})
+        headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({model:'meta-llama/llama-4-scout-17b-16e-instruct',messages:[{role:'user',content:imgContent}],max_tokens:1024,temperature:1,top_p:1})
       });
       var vData=await vRes.json();
       if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
@@ -2000,13 +1988,11 @@ var AGENT_TOOLS={
     if(!key) return 'Error: API key tidak ditemukan';
     var result='[Menjalankan deep_reason...]';
     var xhr=new XMLHttpRequest();
-    xhr.open('POST','https://openrouter.ai/api/v1/chat/completions',false);
+    xhr.open('POST','https://api.groq.com/openai/v1/chat/completions',false);
     xhr.setRequestHeader('Content-Type','application/json');
     xhr.setRequestHeader('Authorization','Bearer '+key);
-    xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
-    xhr.setRequestHeader('X-Title','GazccDeepReason');
     var body=JSON.stringify({
-      model: agentModel||'qwen/qwen3.6-plus',
+      model: 'qwen/qwen3-32b',
       messages:[
         {role:'system',content:'Kamu adalah analytical engine yang SANGAT AKURAT dan grounded. Aturan MUTLAK:\n1. HANYA nyatakan hal yang kamu YAKIN benar — kalau ragu, katakan "Aku tidak yakin tentang X"\n2. JANGAN mengarang data, angka, atau fakta\n3. Gunakan reasoning step-by-step yang eksplisit\n4. Pisahkan FAKTA vs ASUMSI vs OPINI dengan jelas\n5. Output format: [ANALYSIS] → [FACTS] → [REASONING] → [CONCLUSION]\n6. Jika pertanyaan ambigu, nyatakan ambiguitas dan beri jawaban untuk tiap interpretasi'},
         {role:'user',content:q}
@@ -2031,13 +2017,11 @@ var AGENT_TOOLS={
     var key=API_KEY||localStorage.getItem('or_key')||'';
     if(!key) return 'Error: API key tidak ditemukan. Tambahkan OpenRouter API key di Settings.';
     var xhr=new XMLHttpRequest();
-    xhr.open('POST','https://openrouter.ai/api/v1/chat/completions',false);
+    xhr.open('POST','https://api.groq.com/openai/v1/chat/completions',false);
     xhr.setRequestHeader('Content-Type','application/json');
     xhr.setRequestHeader('Authorization','Bearer '+key);
-    xhr.setRequestHeader('HTTP-Referer','https://github.com/gazcc');
-    xhr.setRequestHeader('X-Title','GazccClaudeReason');
     var body=JSON.stringify({
-      model:'qwen/qwen3.6-plus',
+      model:'qwen/qwen3-32b',
       messages:[
         {role:'system',content:'You are Claude, an AI assistant by Anthropic known for exceptional reasoning, honesty, and accuracy. Always think step by step. Never hallucinate facts. If uncertain, explicitly state your uncertainty. Provide thorough, nuanced analysis.'},
         {role:'user',content:q}
@@ -2052,7 +2036,7 @@ var AGENT_TOOLS={
         var data=JSON.parse(xhr.responseText);
         result='[Claude claude-opus-4-5 Response]\n\n'+data.choices[0].message.content;
       } else if(xhr.status===402||xhr.status===429){
-        result='Error: Kredit OpenRouter habis atau rate limit. Top up di openrouter.ai/credits';
+        result='Error: Rate limit Groq. Tunggu sebentar lalu coba lagi.';
       } else if(xhr.status===401){
         result='Error: API key invalid. Ganti di Settings.';
       } else {
@@ -2143,10 +2127,10 @@ async function _llmCall(messages,model,onContinue){
   // Auto-continuation: lanjut kalau finish_reason=='length' DAN belum ada FINAL ANSWER
   var MAX_CONT=6,parts=[],curMessages=messages.slice();
   for(var round=0;round<MAX_CONT;round++){
-    var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+    var res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
       method:'POST',
-      headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-      body:JSON.stringify({model:model,messages:curMessages,max_tokens:4096,temperature:0.7})
+      headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({model:model,messages:curMessages,max_tokens:4096,temperature:0.6,top_p:0.95})
     });
     if(!res.ok){
       var errBody='';try{var ej=await res.json();errBody=ej.error&&ej.error.message?ej.error.message:JSON.stringify(ej);}catch(pe){errBody=await res.text().catch(function(){return '';});}
@@ -2214,7 +2198,7 @@ async function runAgent(userMsg,files){
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
-    var agentModel=document.getElementById('msel').value||'qwen/qwen3.6-plus';
+    var agentModel=document.getElementById('msel').value||'qwen/qwen3-32b';
 
     // ── Bangun messages array multi-turn (bukan digabung jadi 1 string) ──
     // Ini biar prompt user tidak kepotong dan context window lebih efisien
@@ -2284,7 +2268,7 @@ async function runAgent(userMsg,files){
         if(errMsg.toLowerCase().indexOf('401')>=0||errMsg.toLowerCase().indexOf('invalid api key')>=0||errMsg.toLowerCase().indexOf('unauthorized')>=0||errMsg.toLowerCase().indexOf('no auth')>=0){
           finalAnswer='❌ **API Key tidak valid atau sudah expired.**\n\nGanti API Key di tombol ⚙️ Settings, lalu coba lagi.\n\nError: `'+errMsg+'`';
         } else if(errMsg.toLowerCase().indexOf('402')>=0||errMsg.toLowerCase().indexOf('insufficient')>=0||errMsg.toLowerCase().indexOf('credit')>=0){
-          finalAnswer='❌ **Kredit OpenRouter habis.**\n\nTop up di [openrouter.ai/credits](https://openrouter.ai/credits).\n\nError: `'+errMsg+'`';
+          finalAnswer='❌ **Rate limit Groq.**\n\nTunggu beberapa detik lalu coba lagi.\n\nError: `'+errMsg+'`';
         } else if(errMsg.toLowerCase().indexOf('429')>=0||errMsg.toLowerCase().indexOf('rate limit')>=0){
           finalAnswer='❌ **Rate limit — terlalu banyak request.**\n\nTunggu beberapa detik lalu coba lagi.\n\nError: `'+errMsg+'`';
         } else if(errMsg.toLowerCase().indexOf('timeout')>=0||errMsg.toLowerCase().indexOf('network')>=0||errMsg.toLowerCase().indexOf('fetch')>=0){
@@ -2575,20 +2559,20 @@ function toggleStep(uid){
 // ---- GEMINI VISION PIPELINE ----
 // Step 1: Gambar → Gemini Flash (vision analysis)
 // Step 2: Hasil analisis jadi context → dikirim ke model utama (Qwen/dll)
-async function _geminiVisionAnalysis(imageFiles, userText){
+async function _llamaVisionAnalysis(imageFiles, userText){
   var imgContent=imageFiles.map(function(f){
     return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};
   });
   imgContent.push({type:'text',text:'Analisis gambar ini secara detail dan komprehensif. Jelaskan semua yang terlihat: objek, teks, warna, layout, konteks, dll.'+(userText?'\n\nKonteks dari user: '+userText:'')});
-  var res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+  var res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
     method:'POST',
-    headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json','HTTP-Referer':'https://gazccai.vercel.app','X-Title':'GazccAI'},
-    body:JSON.stringify({model:'google/gemini-2.0-flash-001',messages:[{role:'user',content:imgContent}],max_tokens:1500,temperature:0.3})
+    headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({model:'meta-llama/llama-4-scout-17b-16e-instruct',messages:[{role:'user',content:imgContent}],max_tokens:1024,temperature:1,top_p:1})
   });
-  if(!res.ok){var eb=await res.text().catch(function(){return '';});throw new Error('Gemini vision HTTP '+res.status+': '+eb);}
+  if(!res.ok){var eb=await res.text().catch(function(){return '';});throw new Error('Llama Vision HTTP '+res.status+': '+eb);}
   var d=await res.json();
-  if(d.error)throw new Error(d.error.message||'Gemini API error');
-  return (d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'[Gemini tidak memberikan deskripsi]';
+  if(d.error)throw new Error(d.error.message||'Groq API error');
+  return (d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'[Llama tidak memberikan deskripsi]';
 }
 
 function _showToast(msg,color){
@@ -2612,7 +2596,7 @@ async function send(){
     var imageFiles=files.filter(function(f){return f.isImg;});
     var nonImageFiles=files.filter(function(f){return !f.isImg;});
     var hasImages=imageFiles.length>0;
-    var model=document.getElementById('msel').value||'qwen/qwen3.6-plus';
+    var model=document.getElementById('msel').value||'qwen/qwen3-32b';
     var content=[];
 
     if(hasImages){
@@ -2627,19 +2611,19 @@ async function send(){
         _showToast('👁 Gambar dikirim langsung ke '+(selModelObj?selModelObj.name:model),'var(--cyan)');
       }else{
         // ── PIPELINE: Gemini Flash → model utama ──
-        _showToast('🔍 Step 1/2: Analisis gambar via Gemini Flash...','var(--purple)');
+        _showToast('🔍 Step 1/2: Analisis gambar via Llama 4 Scout...','var(--purple)');
         showAgentMode('generating',25);
         var visionDesc='';
         try{
-          visionDesc=await _geminiVisionAnalysis(imageFiles,t);
+          visionDesc=await _llamaVisionAnalysis(imageFiles,t);
           _showToast('✅ Step 2/2: Mengirim ke '+(selModelObj?selModelObj.name:model)+'...','var(--green)');
         }catch(ve){
-          visionDesc='[Gagal analisis gambar dari Gemini: '+ve.message+']';
-          _showToast('⚠️ Gemini gagal — melanjutkan tanpa analisis gambar','var(--orange)');
+          visionDesc='[Gagal analisis gambar dari Llama Vision: '+ve.message+']';
+          _showToast('⚠️ Llama Vision gagal — melanjutkan tanpa analisis gambar','var(--orange)');
         }
         hideAgentMode();
         // Inject hasil vision sebagai context ke pesan
-        content.push({type:'text',text:'[🖼 Analisis Gambar (via Gemini Flash)]\n'+visionDesc});
+        content.push({type:'text',text:'[🖼 Analisis Gambar (via Llama 4 Scout)]\n'+visionDesc});
       }
     }
 
