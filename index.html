@@ -659,10 +659,10 @@ strong{color:var(--txt);font-weight:600}
       </svg>
     </div>
     <h2>GazccAI Setup</h2>
-    <p>Pakai Groq — masukkan API key kamu dari console.groq.com/keys</p>
+    <p>Pakai Covenant — masukkan API key kamu dari app.covenant.sbs</p>
     <div>
-      <div class="field-label">OpenRouter API Key</div>
-      <input type="password" id="apiKey" placeholder="sk-or-...">
+      <div class="field-label">Covenant API Key</div>
+      <input type="password" id="apiKey" placeholder="cov-...">
     </div>
     <div>
       <div class="field-label">Nama Bot</div>
@@ -672,9 +672,9 @@ strong{color:var(--txt);font-weight:600}
       <div class="field-label">System Prompt</div>
       <textarea id="sysPrompt" rows="3" placeholder="You are a helpful AI assistant...">You are a helpful AI assistant. Answer in the same language as the user.</textarea>
     </div>
-    <div id="errMsg" class="err">API key OpenRouter tidak boleh kosong!</div>
+    <div id="errMsg" class="err">API key Covenant tidak boleh kosong!</div>
     <button id="startBtn" onclick="startApp()">Mulai Chat →</button>
-    <a class="guide" href="https://openrouter.ai/keys" target="_blank">Dapatkan API key di openrouter.ai/keys</a>
+    <a class="guide" href="https://app.covenant.sbs/keys" target="_blank">Dapatkan API key di app.covenant.sbs/keys</a>
   </div>
 </div>
 
@@ -1163,7 +1163,7 @@ function _buildChatUI(){
     '<div class="welcome" id="wlc">'+
     '<div class="welcome-icon">🤖</div>'+
     '<h2>'+BOT+'</h2>'+
-    '<div class="tag">POWERED BY GROQ</div>'+
+    '<div class="tag">POWERED BY COVENANT</div>'+
     '<p>Pilih model — ketik, kirim gambar, atau upload file</p>'+
     '<div class="caps"><span class="cap">🖼 Gambar + Agent</span><span class="cap">📄 PDF/File</span><span class="cap">🧠 AI Memory</span><span class="cap">💡 Auto Context</span><span class="cap">🔴 Streaming</span><span class="cap">💬 Multi-Chat</span></div></div>';
   var ab=document.getElementById('attachBar');ab.innerHTML='';ab.style.display='none';
@@ -1755,7 +1755,7 @@ async function sendStream(messages,model){
       if(emsg.indexOf('401')>=0||emsg.toLowerCase().indexOf('invalid api key')>=0)
         ehtml+='<br>🔑 API Key tidak valid — cek di ⚙️ Settings.';
       else if(emsg.indexOf('402')>=0||emsg.toLowerCase().indexOf('credit')>=0)
-        ehtml+='<br>💳 Rate limit Groq — tunggu sebentar lalu coba lagi.';
+        ehtml+='<br>💳 Rate limit Covenant — tunggu sebentar lalu coba lagi.';
       else if(emsg.indexOf('429')>=0)
         ehtml+='<br>⏳ Rate limit — tunggu sebentar lalu coba lagi.';
       else if(emsg.toLowerCase().indexOf('image')>=0||emsg.indexOf('vision')>=0||emsg.indexOf('multimodal')>=0)
@@ -1949,14 +1949,14 @@ var AGENT_TOOLS={
     var imgContent=_agentCurrentImages.map(function(f){return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};});
     imgContent.push({type:'text',text:input&&input.trim()?input.trim():'Analisis gambar ini secara lengkap dan detail. Jelaskan semua yang kamu lihat.'});
     try{
-      var vRes=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      var vRes=await fetch('https://api.covenant.sbs/api/ai/gemini',{
         method:'POST',
         headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({model:'meta-llama/llama-4-scout-17b-16e-instruct',messages:[{role:'user',content:imgContent}],max_tokens:1024,temperature:1,top_p:1})
+        body:JSON.stringify({messages:[{role:'user',content:imgContent}]})
       });
       var vData=await vRes.json();
-      if(vData.error)return 'Vision error: '+(vData.error.message||JSON.stringify(vData.error));
-      return (vData.choices&&vData.choices[0]&&vData.choices[0].message&&vData.choices[0].message.content)||'Tidak ada hasil analisis.';
+      if(!vData.status)return 'Vision error: '+(vData.message||JSON.stringify(vData));
+      return (vData.data&&vData.data.result)||'Tidak ada hasil analisis.';
     }catch(e){return 'Error analyze_image: '+e.message;}
   }},
   calculate:{desc:'Hitung ekspresi matematika',run:function(input){try{return 'Result: '+Function('"use strict";return ('+input.replace(/\^/g,'**')+')')();}catch(e){return 'Error: '+e.message;}}},
@@ -1988,23 +1988,20 @@ var AGENT_TOOLS={
     if(!key) return 'Error: API key tidak ditemukan';
     var result='[Menjalankan deep_reason...]';
     var xhr=new XMLHttpRequest();
-    xhr.open('POST','https://api.groq.com/openai/v1/chat/completions',false);
+    xhr.open('POST','https://api.covenant.sbs/api/ai/gemini',false);
     xhr.setRequestHeader('Content-Type','application/json');
     xhr.setRequestHeader('Authorization','Bearer '+key);
     var body=JSON.stringify({
-      model: 'qwen/qwen3-32b',
       messages:[
         {role:'system',content:'Kamu adalah analytical engine yang SANGAT AKURAT dan grounded. Aturan MUTLAK:\n1. HANYA nyatakan hal yang kamu YAKIN benar — kalau ragu, katakan "Aku tidak yakin tentang X"\n2. JANGAN mengarang data, angka, atau fakta\n3. Gunakan reasoning step-by-step yang eksplisit\n4. Pisahkan FAKTA vs ASUMSI vs OPINI dengan jelas\n5. Output format: [ANALYSIS] → [FACTS] → [REASONING] → [CONCLUSION]\n6. Jika pertanyaan ambigu, nyatakan ambiguitas dan beri jawaban untuk tiap interpretasi'},
         {role:'user',content:q}
-      ],
-      max_tokens:2000,
-      temperature:0.05
+      ]
     });
     try{
       xhr.send(body);
       if(xhr.status===200){
         var data=JSON.parse(xhr.responseText);
-        result=data.choices[0].message.content;
+        result=data.data&&data.data.result?data.data.result:'Error: response kosong';
       } else {
         result='Error '+xhr.status+': '+xhr.responseText.substring(0,200);
       }
@@ -2017,26 +2014,23 @@ var AGENT_TOOLS={
     var key=API_KEY||localStorage.getItem('or_key')||'';
     if(!key) return 'Error: API key tidak ditemukan. Tambahkan OpenRouter API key di Settings.';
     var xhr=new XMLHttpRequest();
-    xhr.open('POST','https://api.groq.com/openai/v1/chat/completions',false);
+    xhr.open('POST','https://api.covenant.sbs/api/ai/gemini',false);
     xhr.setRequestHeader('Content-Type','application/json');
     xhr.setRequestHeader('Authorization','Bearer '+key);
     var body=JSON.stringify({
-      model:'qwen/qwen3-32b',
       messages:[
         {role:'system',content:'You are Claude, an AI assistant by Anthropic known for exceptional reasoning, honesty, and accuracy. Always think step by step. Never hallucinate facts. If uncertain, explicitly state your uncertainty. Provide thorough, nuanced analysis.'},
         {role:'user',content:q}
-      ],
-      max_tokens:3000,
-      temperature:0.1
+      ]
     });
     var result='';
     try{
       xhr.send(body);
       if(xhr.status===200){
         var data=JSON.parse(xhr.responseText);
-        result='[Claude claude-opus-4-5 Response]\n\n'+data.choices[0].message.content;
+        result='[Covenant Gemini Response]\n\n'+(data.data&&data.data.result?data.data.result:'Error: response kosong');
       } else if(xhr.status===402||xhr.status===429){
-        result='Error: Rate limit Groq. Tunggu sebentar lalu coba lagi.';
+        result='Error: Rate limit Covenant. Tunggu sebentar lalu coba lagi.';
       } else if(xhr.status===401){
         result='Error: API key invalid. Ganti di Settings.';
       } else {
@@ -2124,34 +2118,20 @@ function hideAgentMode(){
 var GAZCC_AGENT='';
 
 async function _llmCall(messages,model,onContinue){
-  // Auto-continuation: lanjut kalau finish_reason=='length' DAN belum ada FINAL ANSWER
-  var MAX_CONT=6,parts=[],curMessages=messages.slice();
-  for(var round=0;round<MAX_CONT;round++){
-    var res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({model:model,messages:curMessages,max_tokens:4096,temperature:0.6,top_p:0.95})
-    });
-    if(!res.ok){
-      var errBody='';try{var ej=await res.json();errBody=ej.error&&ej.error.message?ej.error.message:JSON.stringify(ej);}catch(pe){errBody=await res.text().catch(function(){return '';});}
-      throw new Error('[HTTP '+res.status+'] '+errBody);
-    }
-    var d=await res.json();
-    if(d.error)throw new Error('[API Error] '+(d.error.message||JSON.stringify(d.error)));
-    var choice=(d.choices&&d.choices[0])||{};
-    var chunk=(choice.message&&choice.message.content)||'';
-    var finishReason=choice.finish_reason||'stop';
-    parts.push(chunk);
-    var combined=parts.join('');
-    // Stop kalau udah selesai natural ATAU output udah ada FINAL ANSWER
-    if(finishReason!=='length'||/FINAL ANSWER:/i.test(combined))break;
-    if(typeof onContinue==='function')onContinue(round+1,MAX_CONT);
-    curMessages=curMessages.concat([
-      {role:'assistant',content:chunk},
-      {role:'user',content:'Output kamu terpotong. Lanjutkan TEPAT dari titik terakhir — jangan ulangi, langsung sambung.'}
-    ]);
+  // Covenant API — single call, parse data.result
+  var COVENANT_URL='https://api.covenant.sbs/api/ai/gemini';
+  var res=await fetch(COVENANT_URL,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({messages:messages})
+  });
+  if(!res.ok){
+    var errBody='';try{var ej=await res.json();errBody=ej.message||JSON.stringify(ej);}catch(pe){errBody=await res.text().catch(function(){return '';});}
+    throw new Error('[HTTP '+res.status+'] '+errBody);
   }
-  return parts.join('');
+  var d=await res.json();
+  if(!d.status)throw new Error('[API Error] '+(d.message||JSON.stringify(d)));
+  return (d.data&&d.data.result)||'';
 }
 
 async function runAgent(userMsg,files){
@@ -2564,15 +2544,15 @@ async function _llamaVisionAnalysis(imageFiles, userText){
     return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};
   });
   imgContent.push({type:'text',text:'Analisis gambar ini secara detail dan komprehensif. Jelaskan semua yang terlihat: objek, teks, warna, layout, konteks, dll.'+(userText?'\n\nKonteks dari user: '+userText:'')});
-  var res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+  var res=await fetch('https://api.covenant.sbs/api/ai/gemini',{
     method:'POST',
     headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
-    body:JSON.stringify({model:'meta-llama/llama-4-scout-17b-16e-instruct',messages:[{role:'user',content:imgContent}],max_tokens:1024,temperature:1,top_p:1})
+    body:JSON.stringify({messages:[{role:'user',content:imgContent}]})
   });
-  if(!res.ok){var eb=await res.text().catch(function(){return '';});throw new Error('Llama Vision HTTP '+res.status+': '+eb);}
+  if(!res.ok){var eb=await res.text().catch(function(){return '';});throw new Error('Covenant Vision HTTP '+res.status+': '+eb);}
   var d=await res.json();
-  if(d.error)throw new Error(d.error.message||'Groq API error');
-  return (d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'[Llama tidak memberikan deskripsi]';
+  if(!d.status)throw new Error(d.message||'Covenant API error');
+  return (d.data&&d.data.result)||'[Tidak ada deskripsi dari Covenant]';
 }
 
 function _showToast(msg,color){
