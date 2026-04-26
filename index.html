@@ -693,15 +693,8 @@ strong{color:var(--txt);font-weight:600}
     </div>
     <!-- Hidden select still used by JS -->
     <select id="msel" style="display:none">
-      <optgroup label="── Groq Models ──">
-        <option value="qwen/qwen3-32b" selected>Qwen3-32B 🧠</option>
-        <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick ⚡</option>
-        <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
-        <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant ⚡</option>
-        <option value="gemma2-9b-it">Gemma 2 9B</option>
-      </optgroup>
-      <optgroup label="── Vision Support 👁 ──">
-        <option value="meta-llama/llama-4-scout-17b-16e-instruct" data-vision="1">Llama 4 Scout 👁⚡</option>
+      <optgroup label="── Covenant Models ──">
+        <option value="gemini" selected>Gemini ✨</option>
       </optgroup>
     </select>
     <button class="hbtn agent-toggle" id="agentToggle" onclick="toggleAgent()" title="GazccAgent Mode" style="font-size:15px">⚡</button>
@@ -764,12 +757,7 @@ strong{color:var(--txt);font-weight:600}
 <script>
 // Model Sheet Logic
 var modelList = [
-  {value:'qwen/qwen3-32b',name:'Qwen3-32B',desc:'Smart · Tool-Use 🧠',vision:false},
-  {value:'meta-llama/llama-4-scout-17b-16e-instruct',name:'Llama 4 Scout',desc:'Vision Support 👁⚡',vision:true},
-  {value:'meta-llama/llama-4-maverick-17b-128e-instruct',name:'Llama 4 Maverick',desc:'Fast · Powerful ⚡',vision:false},
-  {value:'llama-3.3-70b-versatile',name:'Llama 3.3 70B',desc:'Versatile · Open Source 🦙',vision:false},
-  {value:'llama-3.1-8b-instant',name:'Llama 3.1 8B',desc:'Ringan · Cepat ⚡',vision:false},
-  {value:'gemma2-9b-it',name:'Gemma 2 9B',desc:'Google · Ringan',vision:false},
+  {value:'gemini',name:'Gemini',desc:'Covenant · Powered by Google ✨',vision:true},
 ];
 
 function openModelSheet(){
@@ -1735,7 +1723,7 @@ async function sendStream(messages,model){
   var replyText='',thinkingText='',thinkContent=null,replyDiv=null;
 
   try{
-    var selectedModel=model||document.getElementById('msel').value||'qwen/qwen3-32b';
+    var selectedModel=model||document.getElementById('msel').value||'gemini';
     // Tampilkan indikator proses AI
     showAgentMode('generating', 15);
     var contBadge=null;
@@ -1949,9 +1937,9 @@ var AGENT_TOOLS={
     var imgContent=_agentCurrentImages.map(function(f){return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};});
     imgContent.push({type:'text',text:input&&input.trim()?input.trim():'Analisis gambar ini secara lengkap dan detail. Jelaskan semua yang kamu lihat.'});
     try{
-      var vRes=await fetch('https://api.covenant.sbs/api/ai/gemini',{
+      var vRes=await fetch('/api/chat',{
         method:'POST',
-        headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
+        headers:{'Content-Type':'application/json'},
         body:JSON.stringify({messages:[{role:'user',content:imgContent}]})
       });
       var vData=await vRes.json();
@@ -1988,9 +1976,8 @@ var AGENT_TOOLS={
     if(!key) return 'Error: API key tidak ditemukan';
     var result='[Menjalankan deep_reason...]';
     var xhr=new XMLHttpRequest();
-    xhr.open('POST','https://api.covenant.sbs/api/ai/gemini',false);
+    xhr.open('POST','/api/chat',false);
     xhr.setRequestHeader('Content-Type','application/json');
-    xhr.setRequestHeader('Authorization','Bearer '+key);
     var body=JSON.stringify({
       messages:[
         {role:'system',content:'Kamu adalah analytical engine yang SANGAT AKURAT dan grounded. Aturan MUTLAK:\n1. HANYA nyatakan hal yang kamu YAKIN benar — kalau ragu, katakan "Aku tidak yakin tentang X"\n2. JANGAN mengarang data, angka, atau fakta\n3. Gunakan reasoning step-by-step yang eksplisit\n4. Pisahkan FAKTA vs ASUMSI vs OPINI dengan jelas\n5. Output format: [ANALYSIS] → [FACTS] → [REASONING] → [CONCLUSION]\n6. Jika pertanyaan ambigu, nyatakan ambiguitas dan beri jawaban untuk tiap interpretasi'},
@@ -2014,9 +2001,8 @@ var AGENT_TOOLS={
     var key=API_KEY||localStorage.getItem('or_key')||'';
     if(!key) return 'Error: API key tidak ditemukan. Tambahkan OpenRouter API key di Settings.';
     var xhr=new XMLHttpRequest();
-    xhr.open('POST','https://api.covenant.sbs/api/ai/gemini',false);
+    xhr.open('POST','/api/chat',false);
     xhr.setRequestHeader('Content-Type','application/json');
-    xhr.setRequestHeader('Authorization','Bearer '+key);
     var body=JSON.stringify({
       messages:[
         {role:'system',content:'You are Claude, an AI assistant by Anthropic known for exceptional reasoning, honesty, and accuracy. Always think step by step. Never hallucinate facts. If uncertain, explicitly state your uncertainty. Provide thorough, nuanced analysis.'},
@@ -2118,11 +2104,10 @@ function hideAgentMode(){
 var GAZCC_AGENT='';
 
 async function _llmCall(messages,model,onContinue){
-  // Covenant API — single call, parse data.result
-  var COVENANT_URL='https://api.covenant.sbs/api/ai/gemini';
-  var res=await fetch(COVENANT_URL,{
+  // Lewat backend /api/chat — hindari CORS (browser tidak boleh langsung hit Covenant)
+  var res=await fetch('/api/chat',{
     method:'POST',
-    headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({messages:messages})
   });
   if(!res.ok){
@@ -2178,7 +2163,7 @@ async function runAgent(userMsg,files){
   function agLog(msg){logDiv.innerHTML+='<div>'+escH(msg)+'</div>';logDiv.scrollTop=logDiv.scrollHeight;}
 
   try{
-    var agentModel=document.getElementById('msel').value||'qwen/qwen3-32b';
+    var agentModel=document.getElementById('msel').value||'gemini';
 
     // ── Bangun messages array multi-turn (bukan digabung jadi 1 string) ──
     // Ini biar prompt user tidak kepotong dan context window lebih efisien
@@ -2544,9 +2529,9 @@ async function _llamaVisionAnalysis(imageFiles, userText){
     return {type:'image_url',image_url:{url:'data:'+f.mime+';base64,'+f.data}};
   });
   imgContent.push({type:'text',text:'Analisis gambar ini secara detail dan komprehensif. Jelaskan semua yang terlihat: objek, teks, warna, layout, konteks, dll.'+(userText?'\n\nKonteks dari user: '+userText:'')});
-  var res=await fetch('https://api.covenant.sbs/api/ai/gemini',{
+  var res=await fetch('/api/chat',{
     method:'POST',
-    headers:{'Authorization':'Bearer '+API_KEY,'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({messages:[{role:'user',content:imgContent}]})
   });
   if(!res.ok){var eb=await res.text().catch(function(){return '';});throw new Error('Covenant Vision HTTP '+res.status+': '+eb);}
@@ -2576,7 +2561,7 @@ async function send(){
     var imageFiles=files.filter(function(f){return f.isImg;});
     var nonImageFiles=files.filter(function(f){return !f.isImg;});
     var hasImages=imageFiles.length>0;
-    var model=document.getElementById('msel').value||'qwen/qwen3-32b';
+    var model=document.getElementById('msel').value||'gemini';
     var content=[];
 
     if(hasImages){
